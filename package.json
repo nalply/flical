@@ -1,0 +1,24 @@
+{
+  "name": "flical",
+  "type": "module",
+  "version": "0.0.1",
+  "description": "flipped calculator",
+  "main": "index.js",
+  "devDependencies": {
+    "@puppeteer/browsers": "^1.4.1",
+    "@web/dev-server": "0",
+    "@web/dev-server-esbuild": "^0.4.1",
+    "puppeteer": "^20.5.0",
+    "to-esm": "^2.27.3",
+    "typescript": "5",
+    "typescript-compare": "0",
+    "typescript-logic": "0",
+    "typescript-tuple": "5"
+  },
+  "author": "Daniel Ly",
+  "license": "ISC",
+  "dependencies": {
+    "complex": "file:deps/complex",
+    "fraction": "file:deps/fraction"
+  }
+}

@@ -1,0 +1,6 @@
+[submodule "deps/complex"]
+	path = deps/complex
+	url = git@github.com:nalply/complex.git
+[submodule "deps/fraction"]
+	path = deps/fraction
+	url = git@github.com:nalply/fraction.git
