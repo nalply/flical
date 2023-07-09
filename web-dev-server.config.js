@@ -45,3 +45,7 @@ export default {
   sslCert: "ssl/localhost.crt",
 }
 
+
+// Copyright 2023 Daniel Ly; SPDX-License-Identifier: ISC+
+
+// Copyright 2023 Daniel Ly; SPDX-License-Identifier: ISC+

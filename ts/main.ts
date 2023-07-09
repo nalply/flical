@@ -107,3 +107,4 @@ function onLongPress(el: HTMLElement, duration: number, cb: () => void) {
   el.addEventListener('mouseup', noisy("mouseup", cancel))  
 }
 
+// Copyright: 2023 Daniel Ly; SPDX-License-Identifier: ISC+

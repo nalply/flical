@@ -137,3 +137,5 @@ type ToPrimitiveResult = string | number
   function(hint: ToPrimitiveHint): ToPrimitiveResult {
     return hint === 'number' ? this.abs() : this.re + " " + this.im + "𝑖"
   }
+
+// Copyright 2023 Daniel Ly; SPDX-License-Identifier: ISC+

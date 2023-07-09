@@ -83,3 +83,4 @@ shaving).
 - create app with Tauri
 - upload to webserver
 
+<small>Copyright 2023 Daniel Ly; SPDX-License-Identifier: ISC+</small>
