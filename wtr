@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# @web/dev-server config in web-dev-server.config.js
+WEB_TEST_RUNNER="node_modules/.bin/web-test-runner test/*.ts"
+echo $WEB_TEST_RUNNER starting...
+eval "DEBUG=t-r:* $WEB_TEST_RUNNER"
+
+# Copyright 2023 Daniel Ly; SPDX-License-Identifier: ISC+

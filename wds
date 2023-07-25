@@ -4,3 +4,5 @@
 WEB_DEV_SERVER="node_modules/.bin/web-dev-server"
 echo $WEB_DEV_SERVER starting...
 eval "DEBUG=d-s:* $WEB_DEV_SERVER"
+
+# Copyright 2023 Daniel Ly; SPDX-License-Identifier: ISC+
