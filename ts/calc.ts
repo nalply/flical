@@ -1,4 +1,4 @@
-import { type Num, Complex, type Digit, _ } from './nums.js'
+import { type Num, Complex, type Digit, coerceToSecond, _ } from './nums.js'
 
 export type Meta = 'base' | 'alt' | 'inv' | 'help' 
 export type Mode = 'push' | 'replace' | 'append'
@@ -90,7 +90,7 @@ export class Calc {
   }
 
   add() {
-    this.down(this.x.add(this.y))
+    this.down(coerceToSecond(this.x, this.y).add(this.y))
   }
 
   sub() {

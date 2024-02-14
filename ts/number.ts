@@ -52,50 +52,54 @@ export class NumberExt implements Num {
   }
 
   get simple() {
-    return +this
+    return +this.assertValid()
   }
   
   get re() {
-    return +this
+    return +this.assertValid()
   }
 
   get im() {
-    return 0
+    return this.assertValid(), 0
   }
 
   get num() {
-    return Math.floor(+this)
+    return Math.floor(+this.assertValid())
   }
 
   get den() {
-    return 1
+    return this.assertValid(), 1
   }
 
   get complex(): [ number ] {
-    return [ +this ]
+    return [ +this.assertValid() ]
   }
 
   get fraction(): [ number ] {
-    return [ +this ]
+    return [ +this.assertValid() ]
   }
 
   get parts(): [ number ] {
-    return [ +this ]
+    return [ +this.assertValid() ]
   }
 }
 
+const numProto = Number.prototype as any
 const descs 
   = Object.getOwnPropertyDescriptors(NumberExt.prototype)
-console.debug("descriptors", descs)
 
-const numProto = Number.prototype as any
+let names = []
+
 for (const [ name, desc ] of Object.entries(descs)) {
-  numProto[name] = desc.value
+  const { value, get } = desc
+  const attributes 
+    = get ? { get } : { value }
+  Object.defineProperty(numProto, name, attributes)
 
-  const get = desc.get
-  if (get) Object.defineProperty(numProto, name, { get })
+  names.push((get ? "get " : "") + name)
 }
-console.debug("number now has NumberExt methods")
+console.debug("number now has NumberExt methods",
+  names.join(" "))
 
 Object.assign(window, { NumberExt })
 

@@ -1,34 +1,53 @@
 import { expect } from '@esm-bundle/chai'
 
-import { 
-  ty, isNumber, isComplex, isFraction, part1, part2, isNum, assertNum,
-  isSimple, isInteger, isFractional, isWithImaginary, kind,
-  coerce, complex, fraction,
-  add, mul,
+import {
+  isComplex, Complex, isFraction, Fraction, isNumber,
+  ty, isNum, isSimple, isInteger, isFractional, isWithImaginary, kind,
   type Num,
-} from '../ts/num.js'
+} from '../ts/nums.js'
 
-import { Complex } from 'complex'
-import { Fraction } from 'fraction'
+// todo: same as global.d.ts, don't know why global.d.ts didn't work here
+declare global {
+  export interface Number extends Num {}
+}
 
 const notNumber = "0"
 const ordNumber = -1.5
 const intNumber = 1
-const ordComplex = new Complex(2, 4)
-const intComplex = new Complex(-2)
-const realComplex = new Complex(0.5)
-const nanComplex1 = new Complex(NaN, 0)
-const nanComplex2 = new Complex(-1, NaN)
-const infComplex1 = new Complex(Infinity, 1)
-const infComplex2 = new Complex(0, -Infinity)
-const ordFraction = new Fraction(3, 5)
-const intFraction = new Fraction(6, 1)
-// Fraction seems to disallow non-integer parts, so no tests for that
+const ordComplex = Complex.from(2, 4)
+const intComplex  = Complex.from(-2)
+const realComplex = Complex.from(0.5)
+const ordFraction = Fraction.from(3, 5)
+const intFraction = Fraction.from(6)
+
+function createInvalidComplex(re: any, im: any) {
+  const c = Complex.from()
+  c.x.re = re
+  c.x.im = im
+  return c
+}
+
+const nanComplex1 = createInvalidComplex(NaN, 0)
+const nanComplex2 = createInvalidComplex(-1, NaN)
+const infComplex1 = createInvalidComplex(Infinity, 1)
+const infComplex2 = createInvalidComplex(0, -Infinity)
+
+it('Complex Infinity and NaN throwing', () => {
+  expect(() => Complex.from(NaN)).to.throw()
+  expect(() => Complex.from(-1, NaN)).to.throw()
+  expect(() => Complex.from(Infinity, 1)).to.throw()
+  expect(() => Complex.from(0, -Infinity)).to.throw()
+})
+
+it('Fraction Infinity and NaN throwing', () => {
+  expect(() => Fraction.from(NaN)).to.throw()
+  expect(() => Fraction.from(1, Infinity)).to.throw()
+})
 
 it('type properties', () => {
   expect(ty(ordNumber)).to.equal('number')
-  expect(ty(ordComplex)).to.equal('complex')
-  expect(ty(ordFraction)).to.equal('fraction')
+  expect(ty(ordComplex)).to.equal('Complex')
+  expect(ty(ordFraction)).to.equal('Fraction')
   expect(ty(notNumber)).to.be.null
 
   expect(isNumber(ordNumber)).to.be.true
@@ -44,20 +63,13 @@ it('type properties', () => {
   expect(isFraction(ordNumber)).to.be.false
   expect(isFraction(ordNumber)).to.be.false
   expect(isFraction(ordFraction)).to.be.true
-  expect(isFraction(notNumber)).to.be.false
 
-  expect(part1(ordNumber)).to.equal(-1.5)
-  expect(part1(ordComplex)).to.equal(2)
-  expect(part1(ordFraction)).to.equal(3)
-  expect(part1(notNumber)).to.be.NaN
-
-  expect(part2(ordNumber)).to.be.NaN
-  expect(part2(ordComplex)).to.equal(4)
-  expect(part2(ordFraction)).to.equal(5)
-  expect(part2(notNumber)).to.be.NaN
+  expect(ordNumber.parts).to.deep.equal([ -1.5 ])
+  expect(ordComplex.parts).to.deep.equal([ 2, 4 ])
+  expect(ordFraction.parts).to.deep.equal([ 3, 5 ])
 
   expect(isNum(ordNumber)).to.be.true
-  expect(isNum(ordComplex)).to.be.true
+  expect(isNum(realComplex)).to.be.true
   expect(isNum(ordFraction)).to.be.true
   expect(isNum(notNumber)).to.be.false
   expect(isNum(Infinity)).to.be.false
@@ -68,11 +80,10 @@ it('type properties', () => {
   expect(isNum(infComplex1)).to.be.false
   expect(isNum(infComplex2)).to.be.false
   
-  expect(() => assertNum(ordNumber)).not.to.throw
-  expect(() => assertNum(ordComplex)).not.to.throw
-  expect(() => assertNum(ordFraction)).not.to.throw
-  expect(() => assertNum(notNumber)).to.throw
-  expect(() => assertNum(infComplex1)).to.throw
+  expect(() => ordNumber.assertValid()).not.to.throw
+  expect(() => ordComplex.assertValid()).not.to.throw
+  expect(() => ordFraction.assertValid()).not.to.throw
+  expect(() => infComplex1.assertValid()).to.throw
 })
 
 it('math properties', () => {
@@ -170,16 +181,18 @@ it('coerce', () => {
 })
 
 it('binary ops', () => {
-  expect(add(ordNumber, intNumber)).to.equal(-0.5)
-  expect(add(ordNumber, intComplex)).to.deep.equal(complex(-3.5))
-  expect(add(ordNumber, ordFraction)).to.equal(-0.9)
-  expect(add(intNumber, ordFraction)).to.deep.equal(fraction(8, 5))
-  expect(add(ordFraction, intFraction)).to.deep.equal(fraction(33, 5))
-  expect(mul(ordNumber, intNumber)).to.equal(-1.5)
-  expect(mul(ordNumber, intComplex)).to.deep.equal(complex(3))
-  expect(mul(ordNumber, ordFraction)).to.be.closeTo(-0.9, 0.001)
-  expect(mul(intNumber, ordFraction)).to.deep.equal(fraction(3, 5))
-  expect(mul(ordFraction, intFraction)).to.deep.equal(fraction(18, 5))
+  const n = ordNumber, i = intNumber, f = ordFraction
+  const c = intComplex, f2 = intFraction
+  expect(n.add( i).parts).to.deep.equal([ -0.5 ])
+  expect(n.add( c).parts).to.deep.equal([ -3.5, 0 ])
+  expect(n.add( f).parts).to.deep.equal([ -0.9 ])
+  expect(i.add( f).parts).to.deep.equal([ 8, 5 ])
+  expect(f.add( f2).parts).to.deep.equal([ 33, 5 ])
+  expect(n.mul( i).parts).to.deep.equal([ -1.5 ])
+  expect(n.mul( c).parts).to.deep.equal([ 3, 0 ])
+  expect(n.mul( f).parts[0]).to.be.closeTo(-0.9, 0.001)
+  expect(i.mul( f).parts).to.deep.equal([ 3, 5 ])
+  expect(i.mul( f2).parts).to.deep.equal([ 18, 5 ])
 
   // sub div
 

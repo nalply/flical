@@ -12,8 +12,13 @@ export type Digit = DecDigit | HexDigit
 export interface Num {
   isValid(): this is Num
   assertValid(): this
+
+  /// Add instance and y coercing y to instance's type
   add(y: Num): this
+
+  /// Multiply instance and y coercing y to instance's type
   mul(y: Num): this
+  
   sub(y: Num): this
   div(y: Num): this
   parse(s: string): this

@@ -8,6 +8,8 @@ export class Fraction implements Num {
     this.x = x
   }
 
+  /** @internal */ static FractionJs = FractionJs
+
   static from(num: Num = 0, den: Num = 1) {
     return new Fraction(new FractionJs(
       num.num * den.den,
@@ -15,8 +17,20 @@ export class Fraction implements Num {
     ))
   }
 
-  static parse(s: string) {
-    return new Fraction(new FractionJs(s))
+  static fromFloat(x: Num = 0) {
+    return new Fraction(new FractionJs(x.simple))
+  }
+
+  isValid(): this is Fraction {
+    return true
+  }
+
+  assertValid(): this {
+    return this
+  }
+
+  parse(s: string) {
+    return new Fraction(new FractionJs(s)) as this
   }
 
   calcString() {
@@ -49,6 +63,10 @@ export class Fraction implements Num {
 
   frac() {
     return new Fraction(this.x.sub(this.x.floor())) as this
+  }
+
+  get simple() {
+    return this.x.valueOf()
   }
 
   get re() {

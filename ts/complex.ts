@@ -97,9 +97,5 @@ export class Complex implements Num {
 
 Object.assign(window, { Complex })
 
-/// Is the value a Complex.js instance?
-export const isComplex 
-  = (x: unknown): x is Complex => x instanceof Complex
-
 // Copyright 2023 Daniel Ly; SPDX-License-Identifier: ISC+
 
