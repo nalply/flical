@@ -2,7 +2,6 @@
 
 members = [
   "frontend",
-  "trunk-quickstart",
 ]
 
 resolver = "2"

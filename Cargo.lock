@@ -29,6 +29,7 @@ name = "frontend"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
+ "js-sys",
  "wasm-bindgen",
  "web-sys",
 ]
@@ -81,15 +82,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "trunk-quickstart"
-version = "0.1.0"
-dependencies = [
- "console_error_panic_hook",
- "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]

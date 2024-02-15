@@ -1,5 +1,7 @@
 [build]
-
 target = "site/index.html"
 no_minification = true
 dist = "../target/dist"
+
+[watch]
+watch = ["."]
