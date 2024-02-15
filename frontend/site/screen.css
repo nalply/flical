@@ -1,0 +1,166 @@
+@font-face {
+  font-family: Calc;
+  src: url(montserrat.ttf);
+}
+
+@font-face {
+  font-family: Mono;
+  src: url(ubuntu.ttf);
+}
+
+@font-face {
+  font-family: Math;
+  src: url(petrona2.ttf);
+}
+
+body {
+  margin: 0
+}
+
+main {
+  background: #384040;
+  padding: 10px;
+  width: 300px;
+  box-sizing: border-box;
+}
+
+main i {
+  font: normal 120% Math;
+}
+
+main q:before,
+main q:after {
+  content: "";
+}
+
+q {
+  position: relative;
+}
+
+img[src="sqrt.svg"] {
+  position: absolute;
+  top: 2px;
+  left: -8px;
+  width: 14px;
+  height: 14px;
+}
+
+#screen {
+  --xscale: .75;
+  height: 80px;
+  width: calc(274px / var(--xscale));
+  border: 2px solid #ddc;
+  border-left-width: calc(2px / var(--xscale));
+  border-right-width: calc(2px / var(--xscale));
+  border-radius: 3px;
+  padding: 2px;
+  overflow: hidden;
+  color: #224;
+  background: #abb;
+  margin-bottom: 4px;
+  font: bold 20px Mono;
+  line-height: 20px;
+  white-space: pre;
+  overflow: hidden;
+  transform-origin: left;
+  transform: scaleX(var(--xscale));
+}
+
+#hex,
+#keys1,
+#keys2 {
+  display: grid
+}
+
+#hex {
+  grid: 1fr / repeat(6, 1fr)
+}
+
+#keys1 {
+  grid: 1fr / repeat(5, 1fr)
+}
+
+#keys2 {
+  grid: repeat(4, 1fr) / repeat(4, 1fr)
+}
+
+#hex>button {
+  height: 34px
+}
+
+#keys1>button,
+#keys2>button {
+  height: 46px
+}
+
+#keys1>button:nth-of-type(1) {
+  grid-column: span 2
+}
+
+#keys1>button,
+#keys2>button {
+  display: flex;
+  flex-direction: column-reverse;
+  line-height: 24px;
+}
+
+#keys1>button:nth-of-type(4),
+#keys2>button {
+  font-size: 26px;
+}
+
+button {
+  font: bold 20px Calc;
+  color: #ffc;
+  background: #222;
+  border-radius: 5px;
+  padding: 0;
+  margin: 5px 4px;
+  border: 4px solid #121212;
+  line-height: 1.1;
+}
+
+button>p {
+  text-align: start;
+  color: #a66;
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.c {
+  text-align: center
+}
+
+.n {
+  font-size: 11px;
+  letter-spacing: -1px;
+}
+
+s,
+.inv {
+  color: #97c;
+  text-decoration: none;
+}
+
+s {
+  float: right;
+}
+
+button.alt:not(#x) {
+  color: #a66;
+  font-size: 20px;
+}
+
+button.alt>p {
+  color: #97c;
+  line-height: 16px;
+}
+
+button:active {
+  background: #333;
+  border-color: #222;
+  transform: translateY(2px);
+}
+
+/* Copyright 2023 Daniel Ly; SPDX-License-Identifier: ISC+ */
