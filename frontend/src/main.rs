@@ -26,7 +26,7 @@ extern "C" {
 
 #[wasm_bindgen(inline_js = "
 export function lang(lang, id) { 
-  return window.flical?.[lang]?.[id] ?? ''
+  return window.flical?.lang?.[lang]?.[id] ?? ''
 }
 ")]
 extern "C" {
@@ -97,8 +97,9 @@ pub fn flical_translate_key_press(key: JsString) -> JsString {
 pub fn flical_command(command: String) {
   if !command.is_empty() {
     let mut flical = takeFlicalSingleton();
-    flical.0.command(&command);
-    updateScreen(flical.0.display().into());
+    if flical.0.command(&command) {
+      updateScreen(flical.0.display().into());
+    }
     putFlicalSingleton(flical);
   }
 }

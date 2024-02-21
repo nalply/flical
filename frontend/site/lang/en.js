@@ -24,7 +24,6 @@ function reflow(obj) {
 
 if (!window.flical) window.flical = {}
 if (!window.flical.lang) window.flical.lang = {}
-
 if (!window.flical.lang) window.window.flical.en = {}
 
 window.flical.lang.en = reflow({
@@ -104,9 +103,9 @@ window.flical.lang.en = reflow({
 
 // ================================ <-- this is the max. width of 35 columns.
 window.flical.lang.en.ALT_long = `\
-Exit help       ENTER  or  <-
-Scroll up:          ×  or  2
-Scroll down:        ÷  or  0
+Scroll down:        ÷   or   0
+Exit help       ENTER   or  <-
+Scroll up:          ×   or   2
 
 What does ALT / INV do?
 

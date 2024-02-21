@@ -113,6 +113,14 @@ impl Calc {
 
   /// Handle command, return true to flash
   pub fn command(&mut self, command: &str) -> bool {
+    self.log(&format!("Command `{command}`"));
+
+    if command.ends_with("_long") {
+      self.text = (self.js_calls.lang)("en", command);
+      self.text_index = 1;
+      return true;
+    }
+
     // On help scroll down, up or exit help
     let index = &mut self.text_index;
     if *index > 0 {
@@ -147,14 +155,15 @@ impl Calc {
     self.text = status.into();
   }
 
-  pub fn translate_button_press(&self, index: u8, long: bool) -> &'static str {
-    self.log(&format!("button #{index} long {long}"));
+  pub fn translate_button_press(&self, index: u8, long: bool) -> String {
     let index = index as usize;
-    match self.meta {
+    let command = match self.meta {
       Base => BASE_BUTTONS.get(index).copied().unwrap_or_default(),
       Alt => ALT_BUTTONS.get(index).copied().unwrap_or_default(),
       Inv => INV_BUTTONS.get(index).copied().unwrap_or_default(),
-    }
+    };
+
+    format!("{command}{}", if long { "_long" } else { "" })
   }
 
   pub fn translate_key_press(&self, key: String) -> String {
