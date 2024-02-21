@@ -1,25 +1,104 @@
 use console_error_panic_hook::set_once as init_panic_hook;
-use wasm_bindgen::{closure::Closure, JsCast, JsValue};
-use web_sys::{console, window, Event};
+use js_sys::JsString;
+use wasm_bindgen::prelude::*;
+use web_sys::console;
+
+pub fn log(msg: &str) {
+  console::log_1(&msg.into());
+}
 
 fn main() {
   init_panic_hook();
+  log("Rust panic hook initialized");
 
-  console::log_1(&"Rust WASM main() started".into());
-
-  let document = window().and_then(|win| win.document()).unwrap();
-  let buttons = document.query_selector_all("button").unwrap();
-  for i in 0..buttons.length() {
-    let closure = Closure::wrap(
-      Box::new(move |_: Event| handle_button_click(i)) as Box<dyn FnMut(_)>,
-    );
-    let button_click = closure.as_ref().unchecked_ref();
-    let button = buttons.get(i).unwrap();
-    button.add_event_listener_with_callback("click", button_click).unwrap();
-    closure.forget();
-  }
+  let js_calls = rpn::JsCalls { log, lang, key };
+  putFlicalSingleton(Flical(rpn::Calc::new(js_calls)));
 }
 
-fn handle_button_click(index: u32) {
-  console::log_2(&"button no".into(), &JsValue::from_f64(index as f64));
+#[wasm_bindgen(inline_js = "
+export function key(key) { 
+  return window.flical?.keys?.[key] ?? ''
+}
+")]
+extern "C" {
+  pub fn key(key: &str) -> String;
+}
+
+#[wasm_bindgen(inline_js = "
+export function lang(lang, id) { 
+  return window.flical?.[lang]?.[id] ?? ''
+}
+")]
+extern "C" {
+  pub fn lang(lang: &str, id: &str) -> String;
+}
+
+#[wasm_bindgen(inline_js = "
+export function updateScreen(contents) {
+  document.querySelector('#screen').innerText = contents
+  
+  let screen = window.document.querySelector('#screen')
+  screen.style.color = 'gray'
+  window.setTimeout(_ => screen.attributes.removeNamedItem('style'), 100)
+}
+")]
+extern "C" {
+  pub fn updateScreen(contents: JsString);
+}
+
+// putFlicalSingleton() and takeFlicalSingleton() are helpers to avoid OnceCell
+// on Rust side. The Flical JavaScript class is an opaque wrapper around the
+// state of the flical calculator.
+#[wasm_bindgen(inline_js = "
+export function putFlicalSingleton(flical) {
+  if (!window.flical) window.flical = {}
+  window.flical.singleton = flical
+}
+")]
+extern "C" {
+  pub fn putFlicalSingleton(singleton: Flical);
+}
+
+// Take out the singleton. Don't forget to use putFilcalGingleton() to put it
+// back. If you don't you get something like a null pointer exception, even
+// if you still see the object window.flical in JavaScript.
+#[wasm_bindgen(inline_js = "
+export function takeFlicalSingleton() {
+  return window.flical.singleton  
+}
+")]
+extern "C" {
+  pub fn takeFlicalSingleton() -> Flical;
+}
+
+// The Flical singleton (handled by JavaScript)
+#[wasm_bindgen]
+struct Flical(rpn::Calc);
+
+#[wasm_bindgen]
+pub fn flical_translate_button_press(index: u8, long: bool) -> JsString {
+  let flical = takeFlicalSingleton();
+  let command = flical.0.translate_button_press(index, long);
+  putFlicalSingleton(flical);
+
+  command.into()
+}
+
+#[wasm_bindgen]
+pub fn flical_translate_key_press(key: JsString) -> JsString {
+  let flical = takeFlicalSingleton();
+  let command = flical.0.translate_key_press(key.into());
+  putFlicalSingleton(flical);
+
+  command.into()
+}
+
+#[wasm_bindgen]
+pub fn flical_command(command: String) {
+  if !command.is_empty() {
+    let mut flical = takeFlicalSingleton();
+    flical.0.command(&command);
+    updateScreen(flical.0.display().into());
+    putFlicalSingleton(flical);
+  }
 }

@@ -4,4 +4,4 @@ no_minification = true
 dist = "../target/dist"
 
 [watch]
-watch = ["."]
+watch = [".", "../rpn"]

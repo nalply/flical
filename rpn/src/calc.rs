@@ -4,8 +4,13 @@ use Disp::*;
 use Meta::*;
 use Mode::*;
 
-#[derive(Copy, Clone, Debug, Default, PartialEq)] #[rustfmt::skip]
-pub enum Meta { #[default] Base, Alt, Inv }
+#[derive(Clone, Debug, Default, PartialEq)]
+pub enum Meta {
+  #[default]
+  Base,
+  Alt,
+  Inv,
+}
 
 #[derive(Copy, Clone, Debug, Default, PartialEq)] #[rustfmt::skip]
 pub enum Mode { #[default] Main, E, Help, SelectDisp }
@@ -28,7 +33,8 @@ pub struct Calc {
   pub meta: Meta,
   pub mode: Mode,
   pub disp: Disp,
-  pub status: String,
+  pub text: String,
+  pub text_index: usize,
   pub js_calls: JsCalls,
 }
 
@@ -45,7 +51,8 @@ impl Calc {
       meta: Base,
       mode: Main,
       disp: Std,
-      status: "".into(),
+      text: "".into(),
+      text_index: 0,
       js_calls,
     }
   }
@@ -58,15 +65,30 @@ impl Calc {
       Alt => "ALT",
       Inv => "INV",
     };
-    let t = self.t.display(Disp::Std);
-    let z = self.z.display(Disp::Std);
-    let y = self.y.display(Disp::Std);
-    let x = self.x.display(Disp::Std);
+
+    let lines = self.text.split('\n').collect::<Vec<_>>();
+    let lines_n = lines.len();
+    let index = self.text_index;
+    let shows = |i| index >= i && lines_n >= i;
+
+    let t = format!("t {: <29} {meta}", self.t.display(Std));
+    let t = if shows(5) { lines[index - 5] } else { &t };
+
+    let z = format!("z {: <33}", self.z.display(Std));
+    let z = if shows(4) { lines[index - 4] } else { &z };
+
+    let y = format!("y {: <33}", self.y.display(Std));
+    let y = if shows(3) { lines[index - 3] } else { &y };
+
     let empty = self.input.is_empty();
-    let input = &self.input;
-    let x = if empty { format!("x {x}") } else { format!("› {input}_") };
-    let status = &self.status;
-    format!("t {t: <29} {meta}\nz {z: <33}\ny {y: <33}\n{x: <33}\n{status}")
+    let i = &self.input;
+    let x = self.x.display(Std);
+    let x = if empty { format!("x {x: <33}") } else { format!("› {i:32}_") };
+    let x = if shows(2) { lines[index - 2] } else { &x };
+
+    let s = if shows(1) { lines[index - 1] } else { "" };
+
+    format!("{t}\n{z}\n{y}\n{x}\n{s}")
   }
 
   pub fn up_with_x(&mut self, x: Number) {
@@ -89,21 +111,40 @@ impl Calc {
     self.input.push_str(input);
   }
 
-  pub fn command(&mut self, command: String) {
-    if !self.status.is_empty() {
-      self.status.clear();
-      return;
+  /// Handle command, return true to flash
+  pub fn command(&mut self, command: &str) -> bool {
+    // On help scroll down, up or exit help
+    let index = &mut self.text_index;
+    if *index > 0 {
+      let lines_n = self.text.split('\n').count();
+      match command {
+        "ENTER" | "DEL" => *index = 0,
+        "MUL" | "2" => *index = (*index + 1).min(lines_n),
+        "DIV" | "0" => *index = (*index).max(1) - 1,
+        _ => (),
+      }
+      return false;
     }
 
+    // For commands in '0' ... '9' handle here, saves space in COMMANDS
     if let Some(c @ '0'..='9') = command.chars().next() {
-      return self.add_input(&c.to_string());
+      self.add_input(&c.to_string());
+      return true;
     }
 
-    // let text = (self.js_calls.lang)("en", &command);
-    if let Some(command) = COMMANDS.get(&command) {
-      // self.status = text;
-      command(self)
+    // Else just get the command implementation fn and invoke it
+    if let Some(command) = COMMANDS.get(command) {
+      command(self);
+      return true;
     }
+
+    // Command not found: ignore and don't flash
+    false
+  }
+
+  pub fn status(&mut self, status: &str) {
+    self.text_index = 1;
+    self.text = status.into();
   }
 
   pub fn translate_button_press(&self, index: u8, long: bool) -> &'static str {
@@ -244,19 +285,19 @@ pub static COMMANDS: phf::Map<&str, fn(&mut Calc)> = commands! {
       let (input, empty) = calc.input.split_at(dot_pos);
       if empty[1..].is_empty() {
         if input.len() > 5 {
-          calc.status = "Numerator too large".into();
+          calc.status("Numerator too large");
           return;
         }
         calc.input = format!("{input}/");
         return;
       } else {
-        calc.status = "Integer part not supported".into();
+        calc.status("Integer part not supported");
         return;
       }
     }
 
     if let Some(_) = calc.input.find('/') {
-      calc.status = "Already a fraction".into();
+      calc.status("Already a fraction");
       return;
     }
 
@@ -267,12 +308,12 @@ pub static COMMANDS: phf::Map<&str, fn(&mut Calc)> = commands! {
 
   "E" => fn e(calc: &mut Calc) base {
     if calc.input.contains('/') {
-      calc.status = "Error: No 'e' for fractions".into();
+      calc.status("Error: No 'e' for fractions");
       return;
     }
     let pos = if let Some(i_pos) = calc.input.find('i') { i_pos } else { 0 };
     if calc.input[pos..].contains('e') {
-      calc.status = "Error: Duplicate 'e'".into();
+      calc.status("Error: Duplicate 'e'");
       return;
     }
     calc.add_input("e")
@@ -315,3 +356,30 @@ pub static COMMANDS: phf::Map<&str, fn(&mut Calc)> = commands! {
     }
   }
 };
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn log(_: &str) {}
+  fn lang(_: &str, _: &str) -> String {
+    "".into()
+  }
+  fn key(_: &str) -> String {
+    "".into()
+  }
+
+  const JS_CALLS: JsCalls = JsCalls { log, lang, key };
+
+  #[test]
+  fn test_arithmetic_simple() {
+    let mut calc = Calc::new(JS_CALLS);
+
+    calc.x = Simple(1.234567890123);
+    calc.y = Simple(-1.0);
+    calc.command("ADD");
+
+    assert_eq!(calc.y, Simple(0.0));
+    assert_eq!(calc.x, Simple(0.23456789012));
+  }
+}

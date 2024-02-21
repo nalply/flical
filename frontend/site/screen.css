@@ -22,6 +22,7 @@ main {
   padding: 10px;
   width: 300px;
   box-sizing: border-box;
+  user-select: none;
 }
 
 main i {
@@ -47,15 +48,16 @@ img[src="sqrt.svg"] {
 
 #screen {
   --xscale: .75;
-  height: 80px;
+  height: 100px;
   width: calc(274px / var(--xscale));
   border: 2px solid #ddc;
+  /* todo don't scale the borders but add fixed border width in width above */
   border-left-width: calc(2px / var(--xscale));
   border-right-width: calc(2px / var(--xscale));
   border-radius: 3px;
   padding: 2px;
   overflow: hidden;
-  color: #224;
+  color: #234;
   background: #abb;
   margin-bottom: 4px;
   font: bold 20px Mono;
@@ -64,6 +66,11 @@ img[src="sqrt.svg"] {
   overflow: hidden;
   transform-origin: left;
   transform: scaleX(var(--xscale));
+  outline: none;
+}
+
+#screen:focus {
+  color: #345;
 }
 
 #hex,
@@ -157,10 +164,10 @@ button.alt>p {
   line-height: 16px;
 }
 
-button:active {
+button:active:not(.deactivated) {
   background: #333;
   border-color: #222;
   transform: translateY(2px);
 }
 
-/* Copyright 2023 Daniel Ly; SPDX-License-Identifier: ISC+ */
+/* Copyright see AUTHORS & LICENSE; SPDX-License-Identifier: ISC+ */

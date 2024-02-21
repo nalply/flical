@@ -3,102 +3,111 @@
 <head>
   <title>Flipped Calculator</title>
   <meta charset=utf8>
+  <link rel=icon href=data:base64,>
   <link data-trunk rel=rust href=..>
   <link data-trunk rel=css href=screen.css>
   <link data-trunk rel=copy-dir href=r data-target-path=.>
-  <link rel=icon href=data:base64,>
+  <script data-trunk src=main.js type=module></script>
+  <script data-trunk src=keys.js type=module></script>
+  <script data-trunk src=lang/en.js type=module></script>
 </head>
 
 <body>
   <main>
-    <div id=screen></div>
+    <div id=screen tabindex=0><!--
+      --> &#32; &#32; FLICAL Flipped Calculator<!--
+      -->&#13;<!--
+      -->&#13;&#32;Need Help? Try Looooong Press ALT<!--
+      -->&#13;<!--
+      -->&#13;&#32;Have Fun &#32;·&#32; Relax &#32;·&#32; Enjoy Life<!--
+    --></div>
     <div id=hex>
-      <button> A </button>
-      <button> B </button>
-      <button> C </button>
-      <button> D </button>
-      <button> E </button>
-      <button> F </button>
+      <button tabindex=-1> A </button>
+      <button tabindex=-1> B </button>
+      <button tabindex=-1> C </button>
+      <button tabindex=-1> D </button>
+      <button tabindex=-1> E </button>
+      <button tabindex=-1> F </button>
     </div>
-    <div id=keys1>
-      <button> ENTER
-        <p> DISP <s>LAST&thinsp;<i>x</i></s>
+    <div id=keys1 tabindex=-1>
+      <button tabindex=-1> ENTER
+        <p> LAST&thinsp;<i>x</i> <s>DISP</s>
       </button>
-      <button> STO
+      <button tabindex=-1> STO
         <p class=c>
           <i>x&hairsp;</i>↔<i>&hairsp;y</i>
           <i class=inv>z</i>
       </button>
-      <button> RCL <p> R↓ <s>R↑</s> </button>
-      <button style=line-height:0.8> ←
+      <button tabindex=-1> RCL <p> R↓ <s>R↑</s> </button>
+      <button tabindex=-1 style=line-height:0.8> ←
         <p class=c style=font-size:10px;line-height:0.9>UNDO
           <br>
-          <s class=n style=float:none>OFF</s>
+          <s class=n style=float:none>REDO</s>
       </button>
     </div>
     <div id=keys2>
-      <button> +
-        <p>E
+      <button tabindex=-1> +
+        <p>π
           <s>RAND</s>
       </button>
-      <button> 7
+      <button tabindex=-1> 7
         <p class=c>sin<sup class=inv>-1</sup>
       </button>
-      <button> 8
+      <button tabindex=-1> 8
         <p class=c>cos<sup class=inv>-1</sup>
       </button>
-      <button> 9
+      <button tabindex=-1> 9
         <p class=c>tan<sup class=inv>-1</sup>
       </button>
-      <button> &ndash;
+      <button tabindex=-1> &ndash;
         <p>+/&ndash;
           &nbsp;&nbsp;
           <s>1/<i>x</i></s>
       </button>
-      <button> 4
+      <button tabindex=-1> 4
         <p>log<sup></sup>
           <s>10<sup>&hairsp;<i>x</i></sup></s>
       </button>
-      <button> 5
-        <p>lb<sup></sup>
+      <button tabindex=-1> 5
+        <p>log2<sup></sup>
           <s>2<sup>&hairsp;<i>x</i></sup></s>
       </button>
-      <button> 6
+      <button tabindex=-1> 6
         <p>ln<sup></sup>
           <s><i>e<sup>&hairsp;x</sup></i></s>
       </button>
-      <button> ×
+      <button tabindex=-1> ×
         <p>!
           <s class=n>ROUND</s>
       </button>
-      <button> 1
+      <button tabindex=-1> 1
         <p><sup><i>x</i></sup>
           <q><img src=sqrt.svg></q><i>y</i>
           <s><i>y<sup>&hairsp;x</sup></i></s>
       </button>
-      <button> 2
+      <button tabindex=-1> 2
         <p>
           &numsp;<q><sup></sup><img src=sqrt.svg></q><i>x</i>
           <s>
             <i>x</i><sup>&hairsp;2</sup>
           </s>
       </button>
-      <button> 3
+      <button tabindex=-1> 3
         <p class=n>→h.ms <s>→h</s>
       </button>
-      <button> ÷
+      <button tabindex=-1> ÷
         <p>%
           <s>&Delta;%</s>
       </button>
-      <button> 0
+      <button tabindex=-1> .
         <p class=n>INT
           <s>FRAC</s>
       </button>
-      <button> ·
+      <button tabindex=-1> 0
         <p><i>i</i>
           <s>ABS</s>
       </button>
-      <button class=alt> ALT
+      <button tabindex=-1 class=alt> ALT
         <p class=c> INV
       </button>
     </div>
