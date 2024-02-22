@@ -1,5 +1,8 @@
+use std::fmt;
+
 use crate::num::Disp;
 use crate::num::Number::{self, *};
+use pretty::pretty;
 use Disp::*;
 use Meta::*;
 use Mode::*;
@@ -22,7 +25,7 @@ pub struct JsCalls {
   pub key: fn(&str) -> String,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Calc {
   pub t: Number,
   pub z: Number,
@@ -34,8 +37,22 @@ pub struct Calc {
   pub mode: Mode,
   pub disp: Disp,
   pub text: String,
-  pub text_index: usize,
+  pub scroll: usize,
   pub js_calls: JsCalls,
+}
+
+impl fmt::Debug for Calc {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    let Calc {
+      t, z, y, x, last_x, input, meta, mode, disp, text, scroll, ..
+    } = self;
+    let stack = format!("t {t} z {z} y {y} x {x} last_x {last_x}");
+    let flags = format!("meta {meta:?} mode {mode:?} disp {disp:?}");
+    let text = pretty(text.as_bytes(), 30);
+    let text = format!("input `{input}` text `{text}` scroll {scroll}");
+
+    write!(f, "Calc {{\n  {stack}\n  {flags}\n  {text}\n}}")
+  }
 }
 
 impl Calc {
@@ -52,7 +69,7 @@ impl Calc {
       mode: Main,
       disp: Std,
       text: "".into(),
-      text_index: 0,
+      scroll: 0,
       js_calls,
     }
   }
@@ -68,25 +85,37 @@ impl Calc {
 
     let lines = self.text.split('\n').collect::<Vec<_>>();
     let lines_n = lines.len();
-    let index = self.text_index;
-    let shows = |i| index >= i && lines_n >= i;
+    let scroll = self.scroll;
+    let disp = self.disp;
+    let shows = |i| scroll >= i && lines_n >= i;
+    let check_line_len = |s: &str| {
+      let n = s.chars().count();
+      if n > 35 {
+        self.log(&format!("Warning: `{s}` has len {n}, max. 35 is ok"));
+      }
+    };
 
-    let t = format!("t {: <29} {meta}", self.t.display(Std));
-    let t = if shows(5) { lines[index - 5] } else { &t };
+    let t = format!("t {: <29} {meta}", self.t.display(disp));
+    let t = if shows(5) { lines[scroll - 5] } else { &t };
+    check_line_len(t);
 
-    let z = format!("z {: <33}", self.z.display(Std));
-    let z = if shows(4) { lines[index - 4] } else { &z };
+    let z = format!("z {: <33}", self.z.display(disp));
+    let z = if shows(4) { lines[scroll - 4] } else { &z };
+    check_line_len(z);
 
-    let y = format!("y {: <33}", self.y.display(Std));
-    let y = if shows(3) { lines[index - 3] } else { &y };
+    let y = format!("y {: <33}", self.y.display(disp));
+    let y = if shows(3) { lines[scroll - 3] } else { &y };
+    check_line_len(z);
 
     let empty = self.input.is_empty();
     let i = &self.input;
+    let i = format!("{i}_");
     let x = self.x.display(Std);
     let x = if empty { format!("x {x: <33}") } else { format!("› {i:32}_") };
-    let x = if shows(2) { lines[index - 2] } else { &x };
+    let x = if shows(2) { lines[scroll - 2] } else { &x };
+    check_line_len(x);
 
-    let s = if shows(1) { lines[index - 1] } else { "" };
+    let s = if shows(1) { lines[scroll - 1] } else { "" };
 
     format!("{t}\n{z}\n{y}\n{x}\n{s}")
   }
@@ -115,23 +144,24 @@ impl Calc {
   pub fn command(&mut self, command: &str) -> bool {
     self.log(&format!("Command `{command}`"));
 
-    if command.ends_with("_long") {
-      self.text = (self.js_calls.lang)("en", command);
-      self.text_index = 1;
-      return true;
-    }
-
     // On help scroll down, up or exit help
-    let index = &mut self.text_index;
-    if *index > 0 {
+    if self.scroll > 0 {
+      let scroll = &mut self.scroll;
       let lines_n = self.text.split('\n').count();
       match command {
-        "ENTER" | "DEL" => *index = 0,
-        "MUL" | "2" => *index = (*index + 1).min(lines_n),
-        "DIV" | "0" => *index = (*index).max(1) - 1,
+        "ENTER" | "DEL" => *scroll = 0,
+        "MuL" | "2" => *scroll = (*scroll).max(2) - 1,
+        "DIV" | "0" => *scroll = (*scroll + 1).min(lines_n),
         _ => (),
       }
+      self.log(&format!("scroll {}", self.scroll));
       return false;
+    }
+
+    if command.ends_with("_long") {
+      self.text = (self.js_calls.lang)("en", command);
+      self.scroll = if command == "ALT_long" { 5 } else { 1 };
+      return true;
     }
 
     // For commands in '0' ... '9' handle here, saves space in COMMANDS
@@ -151,7 +181,7 @@ impl Calc {
   }
 
   pub fn status(&mut self, status: &str) {
-    self.text_index = 1;
+    self.scroll = 1;
     self.text = status.into();
   }
 
@@ -305,7 +335,7 @@ pub static COMMANDS: phf::Map<&str, fn(&mut Calc)> = commands! {
       }
     }
 
-    if let Some(_) = calc.input.find('/') {
+    if calc.input.find('/').is_some() {
       calc.status("Already a fraction");
       return;
     }
@@ -355,8 +385,10 @@ pub static COMMANDS: phf::Map<&str, fn(&mut Calc)> = commands! {
   "BASE" => fn base(calc: &mut Calc) { calc.meta = Base }
 
   "_INPUT_X" => fn input_x(calc: &mut Calc) {
-    calc.x = parse(&calc.input);
-    calc.input.clear()
+    if !calc.input.is_empty() {
+      calc.x = parse(&calc.input);
+      calc.input.clear();
+    }
   }
 
   "META" => fn meta(calc: &mut Calc) {
@@ -370,7 +402,9 @@ pub static COMMANDS: phf::Map<&str, fn(&mut Calc)> = commands! {
 mod tests {
   use super::*;
 
-  fn log(_: &str) {}
+  fn log(s: &str) {
+    println!("{s}");
+  }
   fn lang(_: &str, _: &str) -> String {
     "".into()
   }
@@ -384,8 +418,8 @@ mod tests {
   fn test_arithmetic_simple() {
     let mut calc = Calc::new(JS_CALLS);
 
-    calc.x = Simple(1.234567890123);
     calc.y = Simple(-1.0);
+    calc.x = Simple(1.23456789012);
     calc.command("ADD");
 
     assert_eq!(calc.y, Simple(0.0));

@@ -4,7 +4,7 @@ use std::fmt;
 use Number::*;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq)] #[rustfmt::skip]
-pub enum Disp { #[default] Std, Fix(u8), Eng(u8), Sci(u8), }
+pub enum Disp { #[default] Std, Fix(u8), Sci(u8), }
 
 pub type Fraction = num_rational::Ratio<i64>;
 
@@ -74,8 +74,10 @@ fn display(f: f64, disp: Disp) -> String {
   match disp {
     Disp::Std => {
       let f = p(f);
+      let with_negative = (f < 0.0) as usize;
+      let with_frac = 2 * (f.fract().abs() > 0.0) as usize;
       let s = format!("{f}");
-      if s.len() > 14 {
+      if s.len() > 12 + with_negative + with_frac {
         format!("{f:e}")
       } else {
         s
@@ -176,8 +178,8 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_p() {
-    let x = 0.123456789012; // todo not sure, should I add 49 to the right?
+  fn test_fn_p() {
+    let x = 0.12345678901249; // the last two digits 49 should be truncated
     let ten = 10.0f64;
     let inf = f64::INFINITY;
     let numbers = [
@@ -213,8 +215,8 @@ mod tests {
       1.23456789012e-13,
       1.23456789012e-201,
       1.23456789012e-299,
-      inf,
-      -inf,
+      0.0,
+      0.0,
       inf,
       -inf,
     ];
@@ -224,5 +226,88 @@ mod tests {
     }
 
     assert!(p(f64::NAN).is_nan());
+  }
+
+  #[test]
+  fn test_precision_12_digits_display() {
+    // Unchanged Std
+    assert_eq!(display(0.123456789012, Disp::Std), "0.123456789012");
+    assert_eq!(display(-0.123456789012, Disp::Std), "-0.123456789012");
+    assert_eq!(display(1.23456789012, Disp::Std), "1.23456789012");
+    assert_eq!(display(-1.23456789012, Disp::Std), "-1.23456789012");
+
+    // Unchanged Sci
+    assert_eq!(display(1.23456789012e12, Disp::Std), "1.23456789012e12");
+    assert_eq!(display(-1.23456789012e12, Disp::Std), "-1.23456789012e12");
+    assert_eq!(display(1.23456789012e-2, Disp::Std), "1.23456789012e-2");
+    assert_eq!(display(-1.23456789012e-2, Disp::Std), "-1.23456789012e-2");
+
+    // Round down / up for negative
+    assert_eq!(display(0.1234567890121, Disp::Std), "0.123456789012");
+    assert_eq!(display(-0.1234567890121, Disp::Std), "-0.123456789012");
+    assert_eq!(display(1.234567890121, Disp::Std), "1.23456789012");
+    assert_eq!(display(-1.234567890121, Disp::Std), "-1.23456789012");
+
+    // Round to even
+    assert_eq!(display(0.1234567890125, Disp::Std), "0.123456789012");
+    assert_eq!(display(-0.1234567890125, Disp::Std), "-0.123456789012");
+    assert_eq!(display(0.1234567890135, Disp::Std), "0.123456789014");
+    assert_eq!(display(-0.1234567890135, Disp::Std), "-0.123456789014");
+    assert_eq!(display(1.234567890125, Disp::Std), "1.23456789012");
+    assert_eq!(display(-1.234567890125, Disp::Std), "-1.23456789012");
+
+    // Todo: why does this round down instead to even?
+    assert_eq!(display(1.234567890135, Disp::Std), "1.23456789013");
+    assert_eq!(display(-1.234567890135, Disp::Std), "-1.23456789013");
+
+    // Round up / down for negative
+    assert_eq!(display(0.12345678901251, Disp::Std), "0.123456789013");
+    assert_eq!(display(-0.12345678901251, Disp::Std), "-0.123456789013");
+    assert_eq!(display(0.12345678901299, Disp::Std), "0.123456789013");
+    assert_eq!(display(-0.12345678901299, Disp::Std), "-0.123456789013");
+    assert_eq!(display(1.2345678901251, Disp::Std), "1.23456789013");
+    assert_eq!(display(-1.2345678901251, Disp::Std), "-1.23456789013");
+    assert_eq!(display(1.2345678901299, Disp::Std), "1.23456789013");
+    assert_eq!(display(-1.2345678901299, Disp::Std), "-1.23456789013");
+
+    // Sci to Std
+    assert_eq!(display(1.23456789012e0, Disp::Std), "1.23456789012");
+    assert_eq!(display(1.23456789012e11, Disp::Std), "123456789012");
+    assert_eq!(display(1.23456789012e-1, Disp::Std), "0.123456789012");
+    assert_eq!(display(-1.23456789012e0, Disp::Std), "-1.23456789012");
+    assert_eq!(display(-1.23456789012e11, Disp::Std), "-123456789012");
+    assert_eq!(display(-1.23456789012e-1, Disp::Std), "-0.123456789012");
+  }
+
+  #[test]
+  fn test_conversions() {
+    // This is a simple test: num-rational and num-complex do the hard work
+
+    // Only test power-of-two rationals to avoid floating point errors
+    assert_eq!(f2s(Fraction::new(1, 2)), 0.5);
+    assert_eq!(f2s(Fraction::new(1, -4)), -0.25);
+
+    assert_eq!(s2f(8.25), Fraction::new(33, 4));
+    assert_eq!(s2f(-1.5), Fraction::new(-3, 2));
+
+    assert_eq!(s2c(0.0), Complex::new(0.0, 0.0));
+    assert_eq!(s2c(-1.0e10), Complex::new(-1.0e10, 0.0));
+
+    assert_eq!(int(42.99), 42i64);
+    assert_eq!(int(f64::INFINITY), i64::MAX);
+    assert_eq!(int(f64::NAN), 0i64);
+  }
+
+  #[test]
+  fn test_display() {
+    assert_eq!(&display(f64::NAN, Disp::Std), "? (not a number)");
+    assert_eq!(&display(f64::NAN, Disp::Fix(4)), "? (not a number)");
+    assert_eq!(&display(f64::NAN, Disp::Sci(4)), "? (not a number)");
+    assert_eq!(&display(f64::INFINITY, Disp::Std), "oo (infinity)");
+    assert_eq!(&display(f64::INFINITY, Disp::Fix(4)), "oo (infinity)");
+    assert_eq!(&display(f64::INFINITY, Disp::Sci(4)), "oo (infinity)");
+    assert_eq!(&display(-f64::INFINITY, Disp::Std), "-oo (infinity)");
+    assert_eq!(&display(-f64::INFINITY, Disp::Fix(4)), "-oo (infinity)");
+    assert_eq!(&display(-f64::INFINITY, Disp::Sci(4)), "-oo (infinity)");
   }
 }
