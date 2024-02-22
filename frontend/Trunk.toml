@@ -5,3 +5,5 @@ dist = "../target/dist"
 
 [watch]
 watch = [".", "../rpn"]
+
+# Copyright see AUTHORS & LICENSE; SPDX-License-Identifier: ISC+

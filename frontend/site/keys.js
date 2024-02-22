@@ -22,3 +22,4 @@ window.flical.keys = {
   "Tab": "META",
 }
 
+// Copyright see AUTHORS & LICENSE; SPDX-License-Identifier: ISC+

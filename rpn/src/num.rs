@@ -311,3 +311,5 @@ mod tests {
     assert_eq!(&display(-f64::INFINITY, Disp::Sci(4)), "-oo (infinity)");
   }
 }
+
+// Copyright see AUTHORS & LICENSE; SPDX-License-Identifier: ISC+

@@ -36,14 +36,21 @@ extern "C" {
 #[wasm_bindgen(inline_js = "
 export function updateScreen(contents) {
   document.querySelector('#screen').innerText = contents
-  
+}
+")]
+extern "C" {
+  pub fn updateScreen(contents: JsString);
+}
+
+#[wasm_bindgen(inline_js = "
+export function flashScreen() {
   let screen = window.document.querySelector('#screen')
   screen.style.color = 'gray'
   window.setTimeout(_ => screen.attributes.removeNamedItem('style'), 100)
 }
 ")]
 extern "C" {
-  pub fn updateScreen(contents: JsString);
+  pub fn flashScreen();
 }
 
 // putFlicalSingleton() and takeFlicalSingleton() are helpers to avoid OnceCell
@@ -98,8 +105,11 @@ pub fn flical_command(command: String) {
   if !command.is_empty() {
     let mut flical = takeFlicalSingleton();
     if flical.0.command(&command) {
-      updateScreen(flical.0.display().into());
+      flashScreen();
     }
+    updateScreen(flical.0.display().into());
     putFlicalSingleton(flical);
   }
 }
+
+// Copyright see AUTHORS & LICENSE; SPDX-License-Identifier: ISC+

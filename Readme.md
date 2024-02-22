@@ -56,4 +56,4 @@ common algebraic calculators, especially you don't need parentheses.
 
 ## Development environment
 
-<small>Copyright see AUTHORS & LICENSE; SPDX-License-Identifier: ISC+</small>
+<sup>Copyright see AUTHORS & LICENSE; SPDX-License-Identifier: ISC+</sup>

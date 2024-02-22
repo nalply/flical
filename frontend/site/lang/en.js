@@ -24,7 +24,6 @@ function reflow(obj) {
 
 if (!window.flical) window.flical = {}
 if (!window.flical.lang) window.flical.lang = {}
-if (!window.flical.lang) window.window.flical.en = {}
 
 window.flical.lang.en = reflow({
   ENTER: "Separate two entered numbers",
@@ -103,22 +102,25 @@ window.flical.lang.en = reflow({
 
 // ================================ <-- this is the max. width of 35 columns.
 window.flical.lang.en.ALT_long = `\
-Scroll down:        ÷   or   0
-Exit help       ENTER   or  <-
-Scroll up:          ×   or   2
+1. What is ALT / INV?
+2. What is RPN?
 
-What does ALT / INV do?
+Exit this help: Hit ENTER  or <-
+Scroll down:        Hit ÷  or  0
+Scroll up:          Hit ×  or  2
+
+1. What is ALT / INV?
 
 All buttons have three functions.
-ALT is the second one, INV the
-third one. Press ALT once or twice.
+Press ALT then the button for the
+second function (red). Press ALT
+twice for the third one (purple).
 
-What is RPN?
+2. What is RPN?
 
 RPN is Reverse Polish Notation.
-Learn more? Read here or click:
 
-https://www.flical.ch/rpn
+https://www.flical.ch/what-is-rpn
 
 RPN is an efficient calculator
 notation without parentheses. An
@@ -160,3 +162,5 @@ For help about the ALT and INV
 functions press ALT once or twice
 first, then long press the button.
 ` // ============================== <-- this is the max. width of 35 columns.
+
+// Copyright see AUTHORS & LICENSE; SPDX-License-Identifier: ISC+

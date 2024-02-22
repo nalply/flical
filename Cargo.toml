@@ -1,7 +1,9 @@
 [workspace]
 
 members = [
-  "frontend", "rpn",
+  "frontend", "pretty", "rpn",
 ]
 
 resolver = "2"
+
+# Copyright see AUTHORS & LICENSE; SPDX-License-Identifier: ISC+:w

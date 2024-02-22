@@ -1,9 +1,8 @@
 use std::fmt;
 
-use crate::num::Disp;
+use crate::num::Disp::{self, *};
 use crate::num::Number::{self, *};
 use pretty::pretty;
-use Disp::*;
 use Meta::*;
 use Mode::*;
 
@@ -301,7 +300,6 @@ pub static COMMANDS: phf::Map<&str, fn(&mut Calc)> = commands! {
     }
   }
 
-  // todo bug 3 ENTER 4 + LAST_X + LAST_X => x = 0 but 4 expected
   // todo y complex then result complex
   "ADD" => fn add(calc: &mut Calc) input_x base set_last_x {
     calc.down_with_x(calc.x.add_number(calc.y));
@@ -424,5 +422,24 @@ mod tests {
 
     assert_eq!(calc.y, Simple(0.0));
     assert_eq!(calc.x, Simple(0.23456789012));
+    assert_eq!(calc.last_x, Simple(1.23456789012));
+
+    calc.y = Simple(2.0);
+    calc.command("SUB");
+    assert_eq!(calc.y, Simple(0.0));
+    assert_eq!(calc.x, Simple(1.76543210988)); // todo? float cancellation?
+    assert_eq!(calc.last_x, Simple(0.23456789012));
+
+    calc.y = Simple(2.0);
+    calc.command("MUL");
+    assert_eq!(calc.y, Simple(0.0));
+    assert_eq!(calc.x, Simple(3.53086421976));
+    assert_eq!(calc.last_x, Simple(1.76543210988));
+
+    calc.y = Simple(-3.0);
+    calc.command("DIV");
+    assert_eq!(calc.y, Simple(0.0));
+    assert_eq!(calc.x, Simple(-0.849650344301));
+    assert_eq!(calc.last_x, Simple(3.53086421976));
   }
 }
