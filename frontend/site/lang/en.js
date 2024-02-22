@@ -6,7 +6,7 @@ function reflowEntry([key, text]) {
   let currentLine = "";
 
   for (let word of words) {
-    if (currentLine.length + word.length <= width) {
+    if (currentLine.length + word.length < width) {
       currentLine += (currentLine === "" ? "" : " ") + word
     } else {
       lines.push(currentLine)
@@ -26,12 +26,7 @@ if (!window.flical) window.flical = {}
 if (!window.flical.lang) window.flical.lang = {}
 
 window.flical.lang.en = reflow({
-  ENTER: "Separate two entered numbers",
-  ENTER_long: `
-    With ENTER you separate the input of numbers. For example to add 3 and 4,
-    you hit 3, then ENTER, then 4, then add. To read more about RPN, long-press
-    ALT.
-  `,
+  ENTER: "Enter another number",
 
   ADD: "Addition: x = x + y",
   ADD_long: `
@@ -98,69 +93,69 @@ window.flical.lang.en = reflow({
   `,
 
   ALT: "Second and third function",
+  ALT_long: `
+    Many buttons have three functions. One is printed in bright yellow, one
+    in red for the ALT function and one in purple for the INV. function. Press
+    ALT for the ALT function and press ALT twice for the INV function. The
+    screen shows ALT or INV in the top right corner.
+  `,
 })
 
 // ================================ <-- this is the max. width of 35 columns.
-window.flical.lang.en.ALT_long = `\
-1. What is ALT / INV?
-2. What is RPN?
+window.flical.lang.en.ENTER_long = `\
+Exit help screen: ENTER or <-
+Scroll down: ÷ or 0      up: × or 2
 
-Exit this help: Hit ENTER  or <-
-Scroll down:        Hit ÷  or  0
-Scroll up:          Hit ×  or  2
+There's help screen for all buttons
+by long press.
 
-1. What is ALT / INV?
+== An Introduction: What is RPN? ==
 
-All buttons have three functions.
-Press ALT then the button for the
-second function (red). Press ALT
-twice for the third one (purple).
+RPN is Reverse Polish Notation. RPN
+is an easy and efficient calculator
+notation without parentheses.
 
-2. What is RPN?
+Add 3 and 4:   3  ENTER  4  +
 
-RPN is Reverse Polish Notation.
+Weird? Let me tell you: Once you
+get it you like it. It's a good
+skill. Take a moment to learn it!
 
-https://www.flical.ch/what-is-rpn
+Rule: Numbers, then the operation!
+Try it out! Close this help with
+ENTER and then return back here to
+learn more.
 
-RPN is an efficient calculator
-notation without parentheses. An
-addition looks like this: 
+Welcome back!
 
-    3 ENTER 4 +
+Did you try a more complicated cal-
+culation? The trick is: Put inter-
+mediate results on the stack! Did
+you see the letters x, y, z and t
+to the left? That's the stack!
 
-Do you find this weird? But know
-this: Once you've got it, there's
-no turning back. You'll like it.
+Let's use it!
 
-Let's try a more complicated exam-
-ple. The length of a 3D vector:
-Square root of x² + y² + z².
+Task: Length of a 3D vector. It's
+the square root of x² + y² + z².
 
-Calculate it for (3, 4, 5).
+What's the length of (3, 4, 5)?
 
-First input 3 then hit the x² but-
-ton (ALT ALT 2). You should have 9
-at x. Input 4 and repeat. Input 5
-amd repeat. Now you have numbers 9,
-16 and 25 in the stack. Add twice.
-You now have the sum 50. Hit the
-square root button √x (ALT 2). 
+Input 3 then hit the x² button (ALT
+ALT 2). Now you have 9 at x. Input
+4 and repeat. Input 5 amd repeat.
+Now you have 9, 16 and 25. Add
+twice by pressing + twice. Then hit
+the square root button √x (ALT 2). 
 Aaand done!
 
-    3 x² 4 x² 5 x² + + √x
+  3  x²  4  x²  5  x²  +  +  √x
 
 No parentheses. Different but a lot
 simpler. Right? Try a few more cal-
 culations to get a taste of RPN.
 
-To learn more, exit the help (ENTER
-or <-) then long press another but-
-ton. There's always quick help and
-for the longer text scroll down.
-
-For help about the ALT and INV
-functions press ALT once or twice
-first, then long press the button.
+Have fun!
 ` // ============================== <-- this is the max. width of 35 columns.
 
 // Copyright see AUTHORS & LICENSE; SPDX-License-Identifier: ISC+

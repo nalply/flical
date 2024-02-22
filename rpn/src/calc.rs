@@ -159,7 +159,7 @@ impl Calc {
 
     if command.ends_with("_long") {
       self.text = (self.js_calls.lang)("en", command);
-      self.scroll = if command == "ALT_long" { 5 } else { 1 };
+      self.scroll = if command == "ENTER_long" { 5 } else { 1 };
       return true;
     }
 

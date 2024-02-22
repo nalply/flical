@@ -17,17 +17,21 @@ A quick example: To calculate a vector length, `sqrt(x² + y² + z²)`,
 you do:
 
 - Enter first number then square
-- Enter second number then quare, then add
-- Enter third number, then square, then add, then square-root
+- Enter second number then quare
+- Enter third number then square
+- Then add twice
+- Then square-root
 
 If you are used to RPN you will find this a lot easier than with the more
 common algebraic calculators, especially you don't need parentheses.
 
 ## Goals
 
-- Simplicity
-- Completeness for typical RPN usage for math and computer science students
-- External scripting in a Forth-like language
+- Small and simple but complete
+- Extensions for the A-F buttons by external libraries, for example:
+  - A => constants
+  - E => statistics
+  - F => boolean operations for 64 bit integers (fraction with denom 1)
 
 ## Planned Features
 
@@ -46,14 +50,12 @@ common algebraic calculators, especially you don't need parentheses.
   - double precision IEEE 754 numbers
   - fractions on 64 bit integers
   - complex numbers on double precision IEEE 754 numbers
-  - 64 bit integers in hexadecimal, decimal, octal and binary display
 
-## Development Goals
+## Development
 
 - Rust
-- Seed
+- Trunk
 - Webassembly
-
-## Development environment
+- No framework
 
 <sup>Copyright see AUTHORS & LICENSE; SPDX-License-Identifier: ISC+</sup>
