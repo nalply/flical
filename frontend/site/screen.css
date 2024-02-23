@@ -27,7 +27,6 @@ main {
 
 main i {
   font: bold 120% Math;
-  font-style: italic;
 }
 
 main q:before,
@@ -141,11 +140,6 @@ button u {
   text-decoration: none;
   display: inline-block;
   width: 1px;
-}
-
-button.text-narrower>p {
-  font-size: 11.5px;
-  letter-spacing: -0.5px;
 }
 
 .c {
