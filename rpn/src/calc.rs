@@ -110,7 +110,7 @@ impl Calc {
     let i = &self.input;
     let i = format!("{i}_");
     let x = self.x.display(Std);
-    let x = if empty { format!("x {x: <33}") } else { format!("› {i:32}_") };
+    let x = if empty { format!("x {x: <33}") } else { format!("› {i:33}") };
     let x = if shows(2) { lines[scroll - 2] } else { &x };
     check_line_len(x);
 
@@ -149,8 +149,8 @@ impl Calc {
       let lines_n = self.text.split('\n').count();
       match command {
         "ENTER" | "DEL" => *scroll = 0,
-        "MuL" | "2" => *scroll = (*scroll).max(2) - 1,
-        "DIV" | "0" => *scroll = (*scroll + 1).min(lines_n),
+        "2" => *scroll = (*scroll).max(2) - 1,
+        "0" => *scroll = (*scroll + 1).min(lines_n),
         _ => (),
       }
       self.log(&format!("scroll {}", self.scroll));

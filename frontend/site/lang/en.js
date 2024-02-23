@@ -95,20 +95,18 @@ window.flical.lang.en = reflow({
   ALT: "Second and third function",
   ALT_long: `
     Many buttons have three functions. One is printed in bright yellow, one
-    in red for the ALT function and one in purple for the INV. function. Press
-    ALT for the ALT function and press ALT twice for the INV function. The
-    screen shows ALT or INV in the top right corner.
+    in red for the ALT function and one in purple for the INV function. Press
+    ALT once for ALT and twice for INV. An indicator ALT or INV is shwn in the
+    top right corner.
   `,
 })
 
 // ================================ <-- this is the max. width of 35 columns.
 window.flical.lang.en.ENTER_long = `\
-Exit help screen: ENTER or <-
-Scroll down: ÷ or 0      up: × or 2
-
-There's help screen for all buttons
-by long press.
-
+     Button help:   Long press
+     Exit help:     ENTER or <-
+   Scroll down: 0   Scroll up: 2
+   
 == An Introduction: What is RPN? ==
 
 RPN is Reverse Polish Notation. RPN

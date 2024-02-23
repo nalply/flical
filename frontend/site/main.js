@@ -1,4 +1,26 @@
 document.addEventListener("keydown", handleKey);
+window.addEventListener("load", measureScreenLetterSpacing);
+
+function measureScreenLetterSpacing() {
+  let screen =  document.querySelector("#screen")
+  console.log("measureScreenLetterSpacing: screen", screen)
+  
+  if (!screen) return
+
+  // Hardcoded: outer width of #screen
+  let screenWidth = 273
+
+  let style = "style=letter-spacing:0;margin:0;padding:0"
+  let text = "x".repeat(35)
+  screen.insertAdjacentHTML("afterbegin", `<span ${style}>${text}</span>`)
+  let testSpan = document.querySelector("#screen span")
+  let testWidth = testSpan.getBoundingClientRect().width;
+  let letterSpacing = ((screenWidth - testWidth) / 35) + "px"
+  testSpan.remove()
+  console.log(testSpan, "width", testWidth, "letter-spacing", letterSpacing)
+
+  screen.style.letterSpacing = letterSpacing
+}
 
 function handleKey(ev) {
   let prefixes = (ev.ctrlKey ? "C-" : "") + (ev.altKey ? "A-" : "")
@@ -25,7 +47,7 @@ let lastIndex = null
 function touched(button, index) {
   if (running) return
   
-  navigator.vibrate([200, 50, 50, 50, 150])
+  navigator.vibrate?.([200, 50, 50, 50, 150])
   running = setTimeout(timeout, longTime)
   lastIndex = index
 
@@ -49,7 +71,7 @@ if (running && lastIndex === index) {
     flicalExecute(index, false)
   }
 
-  navigator.vibrate(0)
+  navigator.vibrate?.(0)
   lastIndex = null
   running = null
   button.classList.remove('deactivated')

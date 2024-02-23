@@ -1,11 +1,11 @@
 @font-face {
   font-family: Calc;
-  src: url(montserrat.ttf);
+  src: url(montserrat.ttf)
 }
 
 @font-face {
   font-family: Mono;
-  src: url(ubuntu.ttf);
+  src: url(iosevka.ttf);
 }
 
 @font-face {
@@ -26,7 +26,8 @@ main {
 }
 
 main i {
-  font: normal 120% Math;
+  font: bold 120% Math;
+  font-style: italic;
 }
 
 main q:before,
@@ -47,30 +48,30 @@ img[src="sqrt.svg"] {
 }
 
 #screen {
-  --xscale: .75;
+/*  font-size-adjust: none; */
   height: 100px;
-  width: calc(274px / var(--xscale));
+  width: 273px;
   border: 2px solid #ddc;
-  /* todo don't scale the borders but add fixed border width in width above */
-  border-left-width: calc(2px / var(--xscale));
-  border-right-width: calc(2px / var(--xscale));
-  border-radius: 3px;
-  padding: 2px;
+  border-radius: 2px;
+  padding: 1px;
   overflow: hidden;
   color: #234;
   background: #abb;
   margin-bottom: 4px;
-  font: bold 20px Mono;
+  font-family: Mono;
+  font-size: 16.5px;
   line-height: 20px;
   white-space: pre;
   overflow: hidden;
-  transform-origin: left;
-  transform: scaleX(var(--xscale));
   outline: none;
 }
 
+#screen.dim {
+  color: #789;
+}
+
 #screen:focus {
-  color: #345;
+  color: #246;
 }
 
 #hex,
@@ -117,10 +118,11 @@ img[src="sqrt.svg"] {
 }
 
 button {
+  align-items: normal;
   font: bold 20px Calc;
   color: #ffc;
   background: #222;
-  border-radius: 5px;
+  border-radius: 4px;
   padding: 0;
   margin: 5px 4px;
   border: 4px solid #121212;
@@ -129,10 +131,21 @@ button {
 
 button>p {
   text-align: start;
-  color: #a66;
+  color: #c76;
   margin: 0;
   font-size: 12px;
   line-height: 16px;
+}
+
+button u {
+  text-decoration: none;
+  display: inline-block;
+  width: 1px;
+}
+
+button.text-narrower>p {
+  font-size: 11.5px;
+  letter-spacing: -0.5px;
 }
 
 .c {
@@ -146,7 +159,7 @@ button>p {
 
 s,
 .inv {
-  color: #97c;
+  color: #a8f;
   text-decoration: none;
 }
 
@@ -155,12 +168,12 @@ s {
 }
 
 button.alt:not(#x) {
-  color: #a66;
+  color: #c76;
   font-size: 20px;
 }
 
 button.alt>p {
-  color: #97c;
+  color: #a8f;
   line-height: 16px;
 }
 

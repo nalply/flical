@@ -45,8 +45,8 @@ extern "C" {
 #[wasm_bindgen(inline_js = "
 export function flashScreen() {
   let screen = window.document.querySelector('#screen')
-  screen.style.color = 'gray'
-  window.setTimeout(_ => screen.attributes.removeNamedItem('style'), 100)
+  screen.classList.add('dim')
+  window.setTimeout(_ => screen.classList.remove('dim'), 100)
 }
 ")]
 extern "C" {

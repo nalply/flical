@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
-  "frontend", "pretty", "rpn",
+  "frontend", "frontend/src-tauri", "pretty", "rpn",
 ]
 
 resolver = "2"
