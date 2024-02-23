@@ -258,8 +258,8 @@ pub static INV_BUTTONS: &[&str] = &[
   "DISP",    "XY",      "R_DOWN",  "UNDO",
   "E",       "SIN",     "COS",     "TAN",
   "CHS",     "LOG",     "LB",      "LN",
-  "FAC",     "ROOT",    "SQRT",    "TO_HMS",
-  "PERC",    "INT",     "I",       "BASE",
+  "ROUND",   "POW",     "SQR",     "TO_H",
+  "DPERC",   "FRAC",    "ABS",     "BASE",
 ];
 
 // I tried to use stringify!() or paste!() to avoid duplication like this:
@@ -315,6 +315,22 @@ pub static COMMANDS: phf::Map<&str, fn(&mut Calc)> = commands! {
 
   "DIV" => fn div(calc: &mut Calc) input_x base set_last_x {
     calc.down_with_x(calc.y.div_number(calc.x));
+  }
+
+  "ROUND" => fn round(calc: &mut Calc) input_x base set_last_x {
+    calc.x = calc.x.round();
+  }
+
+  "INT" => fn int(calc: &mut Calc) input_x base set_last_x {
+    calc.x = calc.x.int();
+  }
+
+  "FRAC" => fn frac(calc: &mut Calc) input_x base set_last_x {
+    calc.x = calc.x.frac();
+  }
+
+  "ABS" => fn abs(calc: &mut Calc) input_x base set_last_x {
+    calc.x = calc.x.abs();
   }
 
   "DOT" => fn dot(calc: &mut Calc) base {

@@ -1,5 +1,6 @@
 use num_complex::ComplexFloat;
 use num_traits::cast::FromPrimitive;
+use num_traits::sign::Signed;
 use std::fmt;
 use Number::*;
 
@@ -25,7 +26,7 @@ fn s2c(s: f64) -> Complex {
   Complex { re: s, im: 0f64 }
 }
 
-fn int(s: f64) -> i64 {
+fn inti(s: f64) -> i64 {
   s.trunc() as i64
 }
 
@@ -117,8 +118,8 @@ impl_number! {
   complex() -> Complex { s => s2c(s), f => s2c(f2s(f)), c => c }
   re() -> f64 { s => p(s), f => f2s(f), c => c.re }
   im() -> f64 { _ => 0f64, _ => 0f64, c => c.im }
-  int() -> i64 { s => int(s), f => int(f2s(f)), c => int(c.abs()) }
-  numer() -> i64 { s => int(s), f => *f.numer(), c => int(c.re) }
+  inti() -> i64 { s => inti(s), f => inti(f2s(f)), c => inti(c.abs()) }
+  numer() -> i64 { s => inti(s), f => *f.numer(), c => inti(c.abs()) }
   denom() -> i64 { _ => 1i64, f => *f.denom(), _ => 1i64 }
   add_number(rhs: Self) -> Self {
     s => Simple(p(s + rhs.simple())),
@@ -144,6 +145,31 @@ impl_number! {
     s => display(s, disp),
     f => format!("{f}"),
     c => format!("{c}"),
+  }
+  frac() -> Self {
+    s => Simple(s.fract()),
+    f => Fraction(f.fract()),
+    c => Simple(c.abs().fract()),
+  }
+  int() -> Self {
+    s => Simple(s.trunc()),
+    f => Fraction(f.trunc()),
+    c => Simple(c.abs().trunc()),
+  }
+  abs() -> Self {
+    s => Simple(s.abs()),
+    f => Fraction(f.abs()),
+    c => Simple(c.abs()),
+  }
+  round() -> Self {
+    s => Simple(s.round()),
+    f => Fraction(f.round()),
+    c => Simple(c.abs().round()),
+  }
+  is_nan() -> bool {
+    s => s.is_nan(),
+    _ => false,
+    c => c.is_nan(),
   }
 }
 
@@ -293,13 +319,13 @@ mod tests {
     assert_eq!(s2c(0.0), Complex::new(0.0, 0.0));
     assert_eq!(s2c(-1.0e10), Complex::new(-1.0e10, 0.0));
 
-    assert_eq!(int(42.99), 42i64);
-    assert_eq!(int(f64::INFINITY), i64::MAX);
-    assert_eq!(int(f64::NAN), 0i64);
+    assert_eq!(inti(42.99), 42i64);
+    assert_eq!(inti(f64::INFINITY), i64::MAX);
+    assert_eq!(inti(f64::NAN), 0i64);
   }
 
   #[test]
-  fn test_display() {
+  fn test_display_nan_and_infinity() {
     assert_eq!(&display(f64::NAN, Disp::Std), "? (not a number)");
     assert_eq!(&display(f64::NAN, Disp::Fix(4)), "? (not a number)");
     assert_eq!(&display(f64::NAN, Disp::Sci(4)), "? (not a number)");
@@ -310,6 +336,18 @@ mod tests {
     assert_eq!(&display(-f64::INFINITY, Disp::Fix(4)), "-oo (infinity)");
     assert_eq!(&display(-f64::INFINITY, Disp::Sci(4)), "-oo (infinity)");
   }
+
+  #[test]
+  fn test_round() {
+    assert!(Simple(f64::NAN).round().is_nan());
+    assert_eq!(Simple(f64::INFINITY).round(), Simple(f64::INFINITY));
+    assert_eq!(Simple(12.5).round(), Simple(13.0));
+    assert_eq!(Simple(-4.9).round(), Simple(-5.0));
+
+    // todo fraction and complex
+  }
+
+  // todo abs, int, frac
 }
 
 // Copyright see AUTHORS & LICENSE; SPDX-License-Identifier: ISC+
