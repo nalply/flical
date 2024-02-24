@@ -312,6 +312,7 @@ pub mod tests {
       }
     }
 
+    assert_eq!(pretty(b[0], 0), "abcdefghijklmn");
     assert_eq!(pretty(b[0], 1), "a⠤n");
     assert_eq!(pretty(b[0], 2), "a⠤n");
     assert_eq!(pretty(b[0], 3), "a⠤n");
@@ -326,6 +327,17 @@ pub mod tests {
     assert_eq!(pretty(b[0], 12), "abcdef⠤jklmn");
     assert_eq!(pretty(b[0], 13), "abcdef⠤ijklmn");
     assert_eq!(pretty(b[0], 14), "abcdefghijklmn");
+
+    assert_eq!(pretty(b[1], 0), "Höflichkeit 💩 été à Li 李");
+    assert_eq!(pretty(b[1], 1), "H⠤李");
+    assert_eq!(pretty(b[1], 2), "H⠤李");
+    assert_eq!(pretty(b[1], 3), "H⠤李");
+    assert_eq!(pretty(b[1], 4), "Hö⠤李");
+    assert_eq!(pretty(b[1], 5), "Hö⠤ 李");
+    assert_eq!(pretty(b[1], 6), "Höf⠤ 李");
+    assert_eq!(pretty(b[1], 7), "Höf⠤i 李");
+    assert_eq!(pretty(b[1], 8), "Höfl⠤i 李");
+    assert_eq!(pretty(b[1], 9), "Höfl⠤Li 李");
     assert_eq!(pretty(b[1], 10), "Höfli⠤Li 李");
     assert_eq!(pretty(b[1], 11), "Höfli⠤ Li 李");
     assert_eq!(pretty(b[1], 12), "Höflic⠤ Li 李");
