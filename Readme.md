@@ -1,39 +1,40 @@
 # Flical (FLIpped CALculator)
 
-## Introduction
+## A work in progress
 
-**This is a work in progress.**
-
-This is a [RPN calculator
-](https://en.wikipedia.org/wiki/Reverse_Polish_notation).
+If you like, fill out this short questionnaire on
+[Google forms](https://forms.gle/wUQL45x5wCq9Eodx5) with four questions
+about calculators and RPN. This helps me to find out what people care
+about. Thank you! I plan to publish the results after some time.
 
 <img alt=Screenshot src=flical.png width=250>
 
-If you don't know what RPN means, please read the [RPN Wikipedia
-page](https://en.wikipedia.org/wiki/Reverse_Polish_notation) first
-before continuing. 
+## The state of things
 
-A quick example: To calculate a vector length, `sqrt(x² + y² + z²)`,
-you do:
-
-- Enter first number then square
-- Enter second number then quare
-- Enter third number then square
-- Then add twice
-- Then square-root
-
-If you are used to RPN you will find this a lot easier than with the more
-common algebraic calculators, especially you don't need parentheses.
+- Basics work
+  - reals, fractionals and complex numbers
+  - simple arithmetic operations, frac, int, round, abs
+  - inbuilt documentation
+  - key mapping
+  - mode ALT and INV
+- AppImage bundling with Tauri works
+- Todo
+  - more operations (trigonometrics, roots, powers, logic, etc.)
+  - stack management
+  - more testing
+  - configuration by user
+  - extensions
+  - home page
 
 ## Goals
 
-- Small and simple but complete
+- Small and simple but complete online RPN calculator
 - Extensions for the A-F buttons by external libraries, for example:
-  - A => constants
+  - A => scientific constants
   - E => statistics
   - F => boolean operations for 64 bit integers (fraction with denom 1)
 
-## Planned Features
+## Features
 
 - 26 keys
   - Basic arithmetic operators
@@ -56,6 +57,7 @@ common algebraic calculators, especially you don't need parentheses.
 - Rust
 - Trunk
 - Webassembly
+- Tauri
 - No framework
 
 <sup>Copyright see AUTHORS & LICENSE; SPDX-License-Identifier: ISC+</sup>
