@@ -8,12 +8,19 @@ macro_rules! d {
   }
 }
 
-/// Pretty print and shorten a byte slice
+/// Pretty print and shorten a byte slice which might contain invalid UTF-8:
+///
 /// - shorten to width with ellipsis in the middle
-/// - escape invalid utf8 as `\Uhh..hh;`
+/// - escape invalid UTF-8 as `\Uhh..hh;`
 /// - escape control codes and whitespace (except space and newline) as one of:
 ///   `\xhh`, `\Xhhh;`, `\Xhhhh;` or `\Xhhhhh;`
 ///
+/// Note that the resulting character count might vary by up to 6 characters
+/// because escapes take more space and are not truncated.
+///
+/// This function should never panic. If it does, it is a bug. This said, this
+/// function is not optimized and has many implicit assertions (like Rust's
+/// out-of-bound checks). This is by design (stay safe and slow).
 /// ```
 /// # use pretty::pretty;
 /// let s = b"012\x01456789\xff";
@@ -51,21 +58,22 @@ pub fn pretty(input: &[u8], width: usize) -> String {
 
   if shortened {
     // Estimate where the second part will start. It's tricky because we don't
-    // know the bytes and we don't want to read the whole byte slice, it might
-    // be very long. We go backwards from the end of the slice, but this is
-    // tricky too because UTF-8... Let's try.
-
+    // know the bytes and we don't want to read the whole byte slice, might be
+    // long. Go backwards from the end of the slice, but UTF-8, ugh. Let's try.
+    //
     // One to four bytes get converted to: a char, or be escaped: \xhh, \Xhhh;
     // or \u{hhhhh}. A special case are invalid bytes, sequences of them get
     // coalesced, like this: \Uffffff;
     //
     // The most cautious case to go back as far as neccessary is assuming that
-    // all bytes are four-byte chars. To have `width2` chars, we need to go back
-    // four times of that. The worst that would happen is that invalid bytes and
-    // ASCII control codes strictly alternate, then in that case one byte
-    // gets expanded to five chars on average. But we assume that the shortener
-    // will work with a few dozen chars at most, so let's discard a few dozen
-    // `Output` values, that's not too bad.
+    // all bytes are four-byte chars. We need to go back four times the bytes
+    // of width2 (half width). The worst that could happen is that invalid bytes
+    // and ASCII control codes strictly alternate, then in that case one byte
+    // gets expanded to five chars on average. This means we go back 4 * 5 = 20
+    // times too far. But because we ant to shorten the display and will work
+    // with the only bytes that get possibly displayed as passed in by the
+    // parameter `width`, it's not too bad. Of course if someone wants to
+    // shorten to a few thousand characters, this might take a bit more time.
     let start2 = len.saturating_sub(4 * width2).max(part1_len);
     let output = OutputIterator(&input[start2..]).collect::<Vec<_>>();
     let output_count = output.len();
@@ -101,16 +109,9 @@ pub fn pretty(input: &[u8], width: usize) -> String {
     pretty.push_str(&coalesced(&output[start2..]))
   }
 
-  eprintln!();
-
   pretty
 }
 
-// Size considerations:
-//   - valid item: max size (as escaped char as \U{hhhhh}): 8 bytes
-//   - invalid item: byte always escaped a two hex digits: 2 bytes
-//   - invalid_coalesced: arbitrarily long sequence of hex digits
-// todo: just used String for everything, it's easier
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct Output {
   contents: String,
@@ -343,6 +344,9 @@ pub mod tests {
     assert_eq!(pretty(b[1], 25), "Höflichkeit 💩 été à Li 李");
   }
 
+  // Simply fuzzer to try to tigger panics. Use a simple LCR by D. Knuth to
+  // randomize input. The output is not tested, so this fuzzer does not
+  // detect bad ouptut, only panics.
   #[test]
   fn fuzzy_pretty() {
     let seed = &mut 0u64;
