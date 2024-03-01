@@ -2,9 +2,9 @@ use std::fmt;
 
 use crate::num::Disp::{self, *};
 use crate::num::Number::{self, *};
+use crate::num::ZERO;
 use pretty::pretty;
 use Meta::*;
-use Mode::*;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum Meta {
@@ -13,9 +13,6 @@ pub enum Meta {
   Alt,
   Inv,
 }
-
-#[derive(Copy, Clone, Debug, Default, PartialEq)] #[rustfmt::skip]
-pub enum Mode { #[default] Main, E, Help, SelectDisp }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct JsCalls {
@@ -33,7 +30,6 @@ pub struct Calc {
   pub last_x: Number,
   pub input: String,
   pub meta: Meta,
-  pub mode: Mode,
   pub disp: Disp,
   pub text: String,
   pub scroll: usize,
@@ -42,15 +38,12 @@ pub struct Calc {
 
 impl fmt::Debug for Calc {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let Calc {
-      t, z, y, x, last_x, input, meta, mode, disp, text, scroll, ..
-    } = self;
+    let Calc { t, z, y, x, last_x, input, meta, disp, text, scroll, .. } = self;
     let stack = format!("t {t} z {z} y {y} x {x} last_x {last_x}");
-    let flags = format!("meta {meta:?} mode {mode:?} disp {disp:?}");
     let text = pretty(text.as_bytes(), 30);
-    let text = format!("input `{input}` text `{text}` scroll {scroll}");
+    let text = format!("{meta:?} {disp:?} `{input}` `{text}` scroll {scroll}");
 
-    write!(f, "Calc {{\n  {stack}\n  {flags}\n  {text}\n}}")
+    write!(f, "Calc {{\n  {stack}\n  {text}\n}}")
   }
 }
 
@@ -65,7 +58,6 @@ impl Calc {
       last_x: zero,
       input: String::new(),
       meta: Base,
-      mode: Main,
       disp: Std,
       text: "".into(),
       scroll: 0,
@@ -84,9 +76,10 @@ impl Calc {
 
     let lines = self.text.split('\n').collect::<Vec<_>>();
     let lines_n = lines.len();
-    let scroll = self.scroll;
+    let scroll = self.scroll.min(lines_n - 1);
+
     let disp = self.disp;
-    let shows = |i| scroll >= i && lines_n >= i;
+    let shows = |i| scroll >= i && lines_n > i;
     let check_line_len = |s: &str| {
       let n = s.chars().count();
       if n > 35 {
@@ -95,15 +88,15 @@ impl Calc {
     };
 
     let t = format!("t {: <29} {meta}", self.t.display(disp));
-    let t = if shows(5) { lines[scroll - 5] } else { &t };
+    let t = if shows(4) { lines[scroll - 4] } else { &t };
     check_line_len(t);
 
     let z = format!("z {: <33}", self.z.display(disp));
-    let z = if shows(4) { lines[scroll - 4] } else { &z };
+    let z = if shows(3) { lines[scroll - 3] } else { &z };
     check_line_len(z);
 
     let y = format!("y {: <33}", self.y.display(disp));
-    let y = if shows(3) { lines[scroll - 3] } else { &y };
+    let y = if shows(2) { lines[scroll - 2] } else { &y };
     check_line_len(z);
 
     let empty = self.input.is_empty();
@@ -111,10 +104,10 @@ impl Calc {
     let i = format!("{i}_");
     let x = self.x.display(Std);
     let x = if empty { format!("x {x: <33}") } else { format!("› {i:33}") };
-    let x = if shows(2) { lines[scroll - 2] } else { &x };
+    let x = if shows(1) { lines[scroll - 1] } else { &x };
     check_line_len(x);
 
-    let s = if shows(1) { lines[scroll - 1] } else { "" };
+    let s = if shows(0) { lines[scroll] } else { "" };
 
     format!("{t}\n{z}\n{y}\n{x}\n{s}")
   }
@@ -143,23 +136,23 @@ impl Calc {
   pub fn command(&mut self, command: &str) -> bool {
     self.log(&format!("Command `{command}`"));
 
+    // todo no need to scroll or dismiss one-line helps
+
     // On help scroll down, up or exit help
-    if self.scroll > 0 {
-      let scroll = &mut self.scroll;
-      let lines_n = self.text.split('\n').count();
+    if !self.text.is_empty() {
+      let lines_n = self.text.split('\n').count().max(2) - 2;
       match command {
-        "ENTER" | "DEL" => *scroll = 0,
-        "2" => *scroll = (*scroll).max(2) - 1,
-        "0" => *scroll = (*scroll + 1).min(lines_n),
+        "ENTER" | "DEL" => self.text = "".into(),
+        "2" => self.scroll = self.scroll.max(1) - 1,
+        "0" => self.scroll = self.scroll.min(lines_n) + 1,
         _ => (),
       }
-      self.log(&format!("scroll {}", self.scroll));
       return false;
     }
 
     if command.ends_with("_long") {
       self.text = (self.js_calls.lang)("en", command);
-      self.scroll = if command == "ENTER_long" { 5 } else { 1 };
+      self.scroll = if command == "ENTER_long" { 4 } else { 1 };
       return true;
     }
 
@@ -180,7 +173,7 @@ impl Calc {
   }
 
   pub fn status(&mut self, status: &str) {
-    self.scroll = 1;
+    self.scroll = 0;
     self.text = status.into();
   }
 
@@ -372,7 +365,17 @@ pub static COMMANDS: phf::Map<&str, fn(&mut Calc)> = commands! {
     calc.add_input("e")
   }
 
-  "RUP" => fn rup(calc: &mut Calc) {
+  "DEL" => fn del(calc: &mut Calc) {
+    if calc.input.is_empty() && calc.x != ZERO {
+      calc.last_x = calc.x;
+      calc.x = ZERO;
+    } else {
+      let rev_take = calc.input.chars().rev().skip(1).collect::<String>();
+      calc.input = rev_take.chars().rev().collect();
+    }
+  }
+
+  "R_UP" => fn rup(calc: &mut Calc) {
     let t = calc.t;
     calc.t = calc.z;
     calc.z = calc.y;
@@ -380,7 +383,7 @@ pub static COMMANDS: phf::Map<&str, fn(&mut Calc)> = commands! {
     calc.x = t;
   }
 
-  "RDOWN" => fn rdown(calc: &mut Calc) {
+  "R_DOWN" => fn rdown(calc: &mut Calc) {
     let x = calc.x;
     calc.x = calc.y;
     calc.y = calc.z;

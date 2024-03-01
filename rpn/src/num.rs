@@ -14,6 +14,8 @@ pub type Complex = num_complex::Complex<f64>;
 #[derive(Clone, Copy, Debug, PartialEq)] #[rustfmt::skip]
 pub enum Number { Simple(f64), Fraction(Fraction), Complex(Complex) }
 
+pub const ZERO: Number = Simple(0.0);
+
 fn f2s(f: Fraction) -> f64 {
   p(*f.numer() as f64 / *f.denom() as f64)
 }
