@@ -1,5 +1,33 @@
 document.addEventListener("keydown", handleKey);
-window.addEventListener("load", measureScreenLetterSpacing);
+window.addEventListener("load", _ => {
+  scaleCalculatorToViewport()
+  measureScreenLetterSpacing()
+})
+//window.addEventListener("resize", scaleCalculatorToViewport)
+
+function scaleCalculatorToViewport(initial) {
+  let main = document.querySelector("main");
+  if (!main) return
+  
+  let { width, height } = main.getBoundingClientRect()
+  let vpHeight = window.innerHeight
+  let vpWidth = window.innerWidth
+  console.log("vp", vpWidth, "x", vpHeight, "main", width, "x", height)
+
+  let scaleWidth = vpWidth / width
+  let scaleHeight = vpHeight / height
+  let scale = Math.min(scaleWidth, scaleHeight)
+  console.log("scale width", scaleWidth, "height", scaleHeight, "scale", scale)
+
+  if (scaleCalculatorToViewport.scale == scale) return
+
+  scaleCalculatorToViewport.scale = scale
+  document.querySelector("meta[name=viewport]").setAttribute("content",
+    `width=device-width,initial-scale=${scale}>`
+  )
+}
+
+scaleCalculatorToViewport.scale = 0
 
 function measureScreenLetterSpacing() {
   let screen =  document.querySelector("#screen")
@@ -32,10 +60,8 @@ function handleKey(ev) {
 Array.from(document.querySelectorAll("button")).map(
   (button, index) => {
     let touch = _ => touched(button, index)
-    button.addEventListener("touchstart", touch)
     button.addEventListener("mousedown", touch)
     let lift = _ => lifted(button, index)
-    button.addEventListener("touchend", lift)
     button.addEventListener("mouseup", lift)
   }
 )

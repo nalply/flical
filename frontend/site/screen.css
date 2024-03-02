@@ -13,8 +13,9 @@
   src: url(petrona2.ttf);
 }
 
-body {
-  margin: 0
+body, html {
+  margin: 0;
+  width: 300px;
 }
 
 main {
