@@ -1,49 +1,53 @@
 use num_complex::ComplexFloat;
 use num_traits::cast::FromPrimitive;
-use num_traits::sign::Signed;
+use num_traits::Signed;
 use std::fmt;
-use Number::*;
+use Num::*;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq)] #[rustfmt::skip]
 pub enum Disp { #[default] Std, Fix(u8), Sci(u8), }
 
-pub type Fraction = num_rational::Ratio<i64>;
+pub type Z = i64;
 
-pub type Complex = num_complex::Complex<f64>;
+pub type R = f64;
+
+pub type Q = num_rational::Ratio<Z>;
+
+pub type C = num_complex::Complex<R>;
 
 #[derive(Clone, Copy, Debug, PartialEq)] #[rustfmt::skip]
-pub enum Number { Simple(f64), Fraction(Fraction), Complex(Complex) }
+pub enum Num { Real(R), Quotient(Q), Complex(C) }
 
-pub const ZERO: Number = Simple(0.0);
+pub const ZERO: Num = Real(0.0);
 
-fn f2s(f: Fraction) -> f64 {
-  p(*f.numer() as f64 / *f.denom() as f64)
+fn q2r(q: Q) -> R {
+  p(*q.numer() as f64 / *q.denom() as f64)
 }
 
-fn s2f(s: f64) -> Fraction {
-  Fraction::from_f64(s).unwrap_or(Fraction::from_integer(s as i64))
+fn r2q(r: R) -> Q {
+  Q::from_f64(r).unwrap_or(Q::from_integer(r as i64))
 }
 
-fn s2c(s: f64) -> Complex {
-  Complex { re: s, im: 0f64 }
+fn r2c(r: R) -> C {
+  C { re: r, im: 0f64 }
 }
 
-fn inti(s: f64) -> i64 {
-  s.trunc() as i64
+fn inti(r: R) -> Z {
+  r.trunc() as i64
 }
 
 // round to 12 decimal digits of precision and have at most +/-299 as exponent
-fn p(x: f64) -> f64 {
-  if x.is_nan() {
+fn p(r: R) -> R {
+  if r.is_nan() {
     return f64::NAN;
   }
-  if x.is_infinite() {
-    return x;
+  if r.is_infinite() {
+    return r;
   }
 
   // Convert f64 to string with with 12 decimal digits precision
-  let s: &str = &format!("{x:.11e}");
-  let inf = f64::INFINITY.copysign(x.signum());
+  let s: &str = &format!("{r:.11e}");
+  let inf = f64::INFINITY.copysign(r.signum());
 
   // If exponent >= 300, positive infinity, if <= -300, negative infinity
   if let Some(e_pos) = s.find('e') {
@@ -66,22 +70,22 @@ fn p(x: f64) -> f64 {
   s.parse().unwrap()
 }
 
-fn display(f: f64, disp: Disp) -> String {
-  if f.is_nan() {
+fn display(r: R, disp: Disp) -> String {
+  if r.is_nan() {
     return "? (not a number)".into();
   }
-  if f.is_infinite() {
-    return format!("{}oo (infinity)", if f < 0.0 { "-" } else { "" });
+  if r.is_infinite() {
+    return format!("{}oo (infinity)", if r < 0.0 { "-" } else { "" });
   }
 
   match disp {
     Disp::Std => {
-      let f = p(f);
-      let with_negative = (f < 0.0) as usize;
-      let with_frac = 2 * (f.fract().abs() > 0.0) as usize;
-      let s = format!("{f}");
+      let r = p(r);
+      let with_negative = (r < 0.0) as usize;
+      let with_frac = 2 * (r.fract().abs() > 0.0) as usize;
+      let s = format!("{r}");
       if s.len() > 12 + with_negative + with_frac {
-        format!("{f:e}")
+        format!("{r:e}")
       } else {
         s
       }
@@ -90,22 +94,22 @@ fn display(f: f64, disp: Disp) -> String {
   }
 }
 
-macro_rules! impl_number {
+macro_rules! impl_num_methods {
   (
     $(
       $method:ident( $( $param:ident: $param_ty:ty ),* ) $( -> $ty:ty )? {
-        $s:pat => $s_expr:expr ,
-        $f:pat => $f_expr:expr ,
+        $r:pat => $r_expr:expr ,
+        $q:pat => $q_expr:expr ,
         $c:pat => $c_expr:expr $(,)?
       }
     )+
   ) => {
-    impl Number {
+    impl Num {
       $(
         pub fn $method(self $(, $param: $param_ty)* ) $( -> $ty )? {
           match self {
-            Simple($s) => $s_expr,
-            Fraction($f) => $f_expr,
+            Real($r) => $r_expr,
+            Quotient($q) => $q_expr,
             Complex($c) => $c_expr,
           }
         }
@@ -114,88 +118,114 @@ macro_rules! impl_number {
   }
 }
 
-impl_number! {
-  simple() -> f64 { s => p(s), f => f2s(f), c => c.abs() }
-  fraction() -> Fraction { s => s2f(s), f => f, c => s2f(c.abs()) }
-  complex() -> Complex { s => s2c(s), f => s2c(f2s(f)), c => c }
-  re() -> f64 { s => p(s), f => f2s(f), c => c.re }
-  im() -> f64 { _ => 0f64, _ => 0f64, c => c.im }
-  inti() -> i64 { s => inti(s), f => inti(f2s(f)), c => inti(c.abs()) }
-  numer() -> i64 { s => inti(s), f => *f.numer(), c => inti(c.abs()) }
-  denom() -> i64 { _ => 1i64, f => *f.denom(), _ => 1i64 }
-  add_number(rhs: Self) -> Self {
-    s => Simple(p(s + rhs.simple())),
-    f => Fraction(f + rhs.fraction()),
-    c => Complex(c + rhs.complex()),
-  }
-  sub_number(rhs: Self) -> Self {
-    s => Simple(p(s - rhs.simple())),
-    f => Fraction(f - rhs.fraction()),
-    c => Complex(c - rhs.complex()),
-  }
-  mul_number(rhs: Self) -> Self {
-    s => Simple(p(s * rhs.simple())),
-    f => Fraction(f * rhs.fraction()),
-    c => Complex(c * rhs.complex()),
-  }
-  div_number(rhs: Self) -> Self {
-    s => Simple(p(s / rhs.simple())),
-    f => Fraction(f / rhs.fraction()),
-    c => Complex(c / rhs.complex()),
-  }
+impl_num_methods! {
+  as_r() -> R { r => p(r), q => q2r(q), c => c.abs() }
+  as_q() -> Q { r => r2q(r), q => q, c => r2q(c.abs()) }
+  as_c() -> C { r => r2c(r), q => r2c(q2r(q)), c => c }
+  re() -> R { r => p(r), q => q2r(q), c => c.re }
+  im() -> R { _ => 0f64, _ => 0f64, c => c.im }
+  inti() -> Z { r => inti(r), q => inti(q2r(q)), c => inti(c.abs()) }
+  numer() -> Z { r => inti(r), q => *q.numer(), c => inti(c.abs()) }
+  denom() -> Z { _ => 1i64, q => *q.denom(), _ => 1i64 }
+  is_c() -> bool { _ => false, _ => false, c => c.im() != 0.0 }
+  is_q() -> bool { _ => false, q => *q.denom() != 1, _ => false }
   display(disp: Disp) -> String {
-    s => display(s, disp),
-    f => format!("{f}"),
+    r => display(r, disp),
+    q => format!("{q}"),
     c => format!("{c}"),
   }
   frac() -> Self {
-    s => Simple(s.fract()),
-    f => Fraction(f.fract()),
-    c => Simple(c.abs().fract()),
+    r => Real(r.fract()),
+    q => Quotient(q.fract()),
+    c => Real(c.abs().fract()),
   }
   int() -> Self {
-    s => Simple(s.trunc()),
-    f => Fraction(f.trunc()),
-    c => Simple(c.abs().trunc()),
+    r => Real(r.trunc()),
+    q => Quotient(q.trunc()),
+    c => Real(c.abs().trunc()),
   }
   abs() -> Self {
-    s => Simple(s.abs()),
-    f => Fraction(f.abs()),
-    c => Simple(c.abs()),
+    r => Real(r.abs()),
+    q => Quotient(q.abs()),
+    c => Real(c.abs()),
   }
   round() -> Self {
-    s => Simple(s.round()),
-    f => Fraction(f.round()),
-    c => Simple(c.abs().round()),
+    r => Real(r.round()),
+    q => Quotient(q.round()),
+    c => Real(c.abs().round()),
   }
   is_nan() -> bool {
-    s => s.is_nan(),
+    r => r.is_nan(),
     _ => false,
     c => c.is_nan(),
   }
 }
 
-impl Number {
-  pub fn as_complex(re: f64, im: f64) -> Number {
+macro_rules! impl_binary_ops_with_fix {
+  (
+    $( pub fn $name:ident(self, rhs: Self) -> Self { $op:tt } )+
+  ) => {
+    impl Num {
+      $(
+        pub fn $name(self, rhs: Self) -> Self {
+          if self.is_c() || rhs.is_c() {
+            Complex(self.as_c() $op rhs.as_c()).fix()
+          } else if self.is_q() || rhs.is_q() {
+            Quotient(self.as_q() $op rhs.as_q()).fix()
+          } else {
+            Real(self.as_r() $op rhs.as_r())
+          }
+        }
+      )+
+    }
+  }
+}
+
+impl_binary_ops_with_fix! {
+  pub fn add_num(self, rhs: Self) -> Self { + }
+  pub fn sub_num(self, rhs: Self) -> Self { - }
+  pub fn mul_num(self, rhs: Self) -> Self { * }
+  pub fn div_num(self, rhs: Self) -> Self { / }
+}
+
+impl Num {
+  pub fn complex(re: f64, im: f64) -> Self {
     Complex(num_complex::Complex { re, im })
   }
 
-  pub fn as_fraction(numer: i64, denom: i64) -> Number {
-    Fraction(num_rational::Ratio::<i64>::new(numer, denom))
+  pub fn fraction(numer: i64, denom: i64) -> Self {
+    Quotient(num_rational::Ratio::<i64>::new(numer, denom))
+  }
+
+  pub fn pow(self, exp: Self) -> Self {
+    Complex(self.as_c().powc(exp.as_c())).fix()
+  }
+
+  pub fn root(self, root: Self) -> Self {
+    Complex(self.as_c().powc(1.0 / root.as_c())).fix()
+  }
+
+  // If a complex has im == 0 or fraction denom == 1 then convert to Simple
+  pub fn fix(self) -> Self {
+    if self.im() == 0.0 && self.denom() == 1 {
+      Real(self.re())
+    } else {
+      self
+    }
   }
 }
 
-impl Default for Number {
+impl Default for Num {
   fn default() -> Self {
-    Simple(0f64)
+    Real(0f64)
   }
 }
 
-impl fmt::Display for Number {
+impl fmt::Display for Num {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      Simple(simple) => write!(f, "{simple}"),
-      Fraction(fraction) => write!(f, "{fraction}"),
+      Real(simple) => write!(f, "{simple}"),
+      Quotient(fraction) => write!(f, "{fraction}"),
       Complex(complex) => write!(f, "{complex}"),
     }
   }
@@ -312,14 +342,14 @@ mod tests {
     // This is a simple test: num-rational and num-complex do the hard work
 
     // Only test power-of-two rationals to avoid floating point errors
-    assert_eq!(f2s(Fraction::new(1, 2)), 0.5);
-    assert_eq!(f2s(Fraction::new(1, -4)), -0.25);
+    assert_eq!(q2r(Q::new(1, 2)), 0.5);
+    assert_eq!(q2r(Q::new(1, -4)), -0.25);
 
-    assert_eq!(s2f(8.25), Fraction::new(33, 4));
-    assert_eq!(s2f(-1.5), Fraction::new(-3, 2));
+    assert_eq!(r2q(8.25), Q::new(33, 4));
+    assert_eq!(r2q(-1.5), Q::new(-3, 2));
 
-    assert_eq!(s2c(0.0), Complex::new(0.0, 0.0));
-    assert_eq!(s2c(-1.0e10), Complex::new(-1.0e10, 0.0));
+    assert_eq!(r2c(0.0), C::new(0.0, 0.0));
+    assert_eq!(r2c(-1.0e10), C::new(-1.0e10, 0.0));
 
     assert_eq!(inti(42.99), 42i64);
     assert_eq!(inti(f64::INFINITY), i64::MAX);
@@ -341,10 +371,10 @@ mod tests {
 
   #[test]
   fn test_round() {
-    assert!(Simple(f64::NAN).round().is_nan());
-    assert_eq!(Simple(f64::INFINITY).round(), Simple(f64::INFINITY));
-    assert_eq!(Simple(12.5).round(), Simple(13.0));
-    assert_eq!(Simple(-4.9).round(), Simple(-5.0));
+    assert!(Real(f64::NAN).round().is_nan());
+    assert_eq!(Real(f64::INFINITY).round(), Real(f64::INFINITY));
+    assert_eq!(Real(12.5).round(), Real(13.0));
+    assert_eq!(Real(-4.9).round(), Real(-5.0));
 
     // todo fraction and complex
   }

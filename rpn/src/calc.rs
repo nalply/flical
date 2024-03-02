@@ -1,7 +1,7 @@
 use std::fmt;
 
 use crate::num::Disp::{self, *};
-use crate::num::Number::{self, *};
+use crate::num::Num::{self, *};
 use crate::num::ZERO;
 use pretty::pretty;
 use Meta::*;
@@ -23,11 +23,11 @@ pub struct JsCalls {
 
 #[derive(Clone, PartialEq)]
 pub struct Calc {
-  pub t: Number,
-  pub z: Number,
-  pub y: Number,
-  pub x: Number,
-  pub last_x: Number,
+  pub t: Num,
+  pub z: Num,
+  pub y: Num,
+  pub x: Num,
+  pub last_x: Num,
   pub input: String,
   pub meta: Meta,
   pub disp: Disp,
@@ -49,7 +49,7 @@ impl fmt::Debug for Calc {
 
 impl Calc {
   pub fn new(js_calls: JsCalls) -> Self {
-    let zero = Number::default();
+    let zero = Num::default();
     Calc {
       t: zero,
       z: zero,
@@ -112,14 +112,14 @@ impl Calc {
     format!("{t}\n{z}\n{y}\n{x}\n{s}")
   }
 
-  pub fn up_with_x(&mut self, x: Number) {
+  pub fn up_with_x(&mut self, x: Num) {
     self.t = self.z;
     self.z = self.y;
     self.y = self.x;
     self.x = x;
   }
 
-  pub fn down_with_x(&mut self, x: Number) {
+  pub fn down_with_x(&mut self, x: Num) {
     self.x = x;
     self.y = self.z;
     self.z = self.t;
@@ -127,7 +127,7 @@ impl Calc {
 
   pub fn add_input(&mut self, input: &str) {
     if self.input.is_empty() {
-      self.up_with_x(Simple(0.0))
+      self.up_with_x(Real(0.0))
     }
     self.input.push_str(input);
   }
@@ -197,14 +197,14 @@ impl Calc {
   }
 }
 
-pub fn parse(input: &str) -> Number {
+pub fn parse(input: &str) -> Num {
   if input.is_empty() {
-    return Simple(0.0);
+    return Real(0.0);
   }
 
   if let Some(i_pos) = input.find('i') {
     if input == "i" {
-      return Number::as_complex(0.0, 1.0);
+      return Num::complex(0.0, 1.0);
     }
 
     let (re, im) = input.split_at(i_pos);
@@ -212,17 +212,17 @@ pub fn parse(input: &str) -> Number {
     let im = &im[1..];
     let im = if im.is_empty() { 1f64 } else { im.parse().unwrap() };
 
-    return Number::as_complex(re, im);
+    return Num::complex(re, im);
   }
 
   if let Some(slash_pos) = input.find('/') {
     let (numer, denom) = input.split_at(slash_pos);
     let numer = numer.parse().unwrap();
     let denom = denom[1..].parse().unwrap();
-    return Number::as_fraction(numer, denom);
+    return Num::fraction(numer, denom);
   }
 
-  Number::Simple(input.parse().unwrap())
+  Num::Real(input.parse().unwrap())
 }
 
 #[rustfmt::skip]
@@ -295,19 +295,27 @@ pub static COMMANDS: phf::Map<&str, fn(&mut Calc)> = commands! {
 
   // todo y complex then result complex
   "ADD" => fn add(calc: &mut Calc) input_x base set_last_x {
-    calc.down_with_x(calc.x.add_number(calc.y));
+    calc.down_with_x(calc.y.add_num(calc.x));
   }
 
   "SUB" => fn sub(calc: &mut Calc) input_x base set_last_x {
-    calc.down_with_x(calc.y.sub_number(calc.x));
+    calc.down_with_x(calc.y.sub_num(calc.x));
   }
 
   "MUL" => fn mul(calc: &mut Calc) input_x base set_last_x {
-    calc.down_with_x(calc.x.mul_number(calc.y));
+    calc.down_with_x(calc.x.mul_num(calc.y));
   }
 
   "DIV" => fn div(calc: &mut Calc) input_x base set_last_x {
-    calc.down_with_x(calc.y.div_number(calc.x));
+    calc.down_with_x(calc.y.div_num(calc.x));
+  }
+
+  "POW" => fn pow(calc: &mut Calc) input_x base set_last_x {
+    calc.down_with_x(calc.y.pow(calc.x));
+  }
+
+  "ROOT" => fn root(calc: &mut Calc) input_x base set_last_x {
+    calc.down_with_x(calc.y.root(calc.x));
   }
 
   "ROUND" => fn round(calc: &mut Calc) input_x base set_last_x {
@@ -435,30 +443,30 @@ mod tests {
   fn test_arithmetic_simple() {
     let mut calc = Calc::new(JS_CALLS);
 
-    calc.y = Simple(-1.0);
-    calc.x = Simple(1.23456789012);
+    calc.y = Real(-1.0);
+    calc.x = Real(1.23456789012);
     calc.command("ADD");
 
-    assert_eq!(calc.y, Simple(0.0));
-    assert_eq!(calc.x, Simple(0.23456789012));
-    assert_eq!(calc.last_x, Simple(1.23456789012));
+    assert_eq!(calc.y, Real(0.0));
+    assert_eq!(calc.x, Real(0.23456789012));
+    assert_eq!(calc.last_x, Real(1.23456789012));
 
-    calc.y = Simple(2.0);
+    calc.y = Real(2.0);
     calc.command("SUB");
-    assert_eq!(calc.y, Simple(0.0));
-    assert_eq!(calc.x, Simple(1.76543210988)); // todo? float cancellation?
-    assert_eq!(calc.last_x, Simple(0.23456789012));
+    assert_eq!(calc.y, Real(0.0));
+    assert_eq!(calc.x, Real(1.76543210988)); // todo? float cancellation?
+    assert_eq!(calc.last_x, Real(0.23456789012));
 
-    calc.y = Simple(2.0);
+    calc.y = Real(2.0);
     calc.command("MUL");
-    assert_eq!(calc.y, Simple(0.0));
-    assert_eq!(calc.x, Simple(3.53086421976));
-    assert_eq!(calc.last_x, Simple(1.76543210988));
+    assert_eq!(calc.y, Real(0.0));
+    assert_eq!(calc.x, Real(3.53086421976));
+    assert_eq!(calc.last_x, Real(1.76543210988));
 
-    calc.y = Simple(-3.0);
+    calc.y = Real(-3.0);
     calc.command("DIV");
-    assert_eq!(calc.y, Simple(0.0));
-    assert_eq!(calc.x, Simple(-0.849650344301));
-    assert_eq!(calc.last_x, Simple(3.53086421976));
+    assert_eq!(calc.y, Real(0.0));
+    assert_eq!(calc.x, Real(-0.849650344301));
+    assert_eq!(calc.last_x, Real(3.53086421976));
   }
 }
