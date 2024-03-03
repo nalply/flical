@@ -142,10 +142,9 @@ impl Calc {
     if !self.text.is_empty() {
       let lines_n = self.text.split('\n').count().max(2) - 2;
       match command {
-        "ENTER" | "DEL" => self.text = "".into(),
-        "2" => self.scroll = self.scroll.max(1) - 1,
-        "0" => self.scroll = self.scroll.min(lines_n) + 1,
-        _ => (),
+        "2" | "R_UP" => self.scroll = self.scroll.max(1) - 1,
+        "0" | "R_DOWN" => self.scroll = self.scroll.min(lines_n) + 1,
+        _ => self.text = "".into(),
       }
       return false;
     }
@@ -168,7 +167,7 @@ impl Calc {
       return true;
     }
 
-    // Command not found: ignore and don't flash
+    self.log(&format!("Ignoring command {command}"));
     false
   }
 
@@ -204,7 +203,7 @@ pub fn parse(input: &str) -> Num {
 
   if let Some(i_pos) = input.find('i') {
     if input == "i" {
-      return Num::complex(0.0, 1.0);
+      return Num::c(0.0, 1.0);
     }
 
     let (re, im) = input.split_at(i_pos);
@@ -212,14 +211,14 @@ pub fn parse(input: &str) -> Num {
     let im = &im[1..];
     let im = if im.is_empty() { 1f64 } else { im.parse().unwrap() };
 
-    return Num::complex(re, im);
+    return Num::c(re, im);
   }
 
   if let Some(slash_pos) = input.find('/') {
     let (numer, denom) = input.split_at(slash_pos);
     let numer = numer.parse().unwrap();
     let denom = denom[1..].parse().unwrap();
-    return Num::fraction(numer, denom);
+    return Num::q(numer, denom);
   }
 
   Num::Real(input.parse().unwrap())
@@ -239,7 +238,7 @@ pub static BASE_BUTTONS: &[&str] = &[
 pub static ALT_BUTTONS: &[&str] = &[
   "ALT_A",   "ALT_B",   "ALT_C",   "ALT_D",   "ALT_E",   "ALT_F",
   "LAST_X",  "XY",      "R_DOWN",  "UNDO",
-  "E",       "SIN",     "COS",     "TAN",
+  "EDATA",   "SIN",     "COS",     "TAN",
   "CHS",     "LOG",     "LB",      "LN",
   "FAC",     "ROOT",    "SQRT",    "TO_HMS",
   "PERC",    "INT",     "I",       "INV",
@@ -248,10 +247,10 @@ pub static ALT_BUTTONS: &[&str] = &[
 #[rustfmt::skip]
 pub static INV_BUTTONS: &[&str] = &[
   "INV_A",   "INV_B",   "INV_C",   "INV_D",   "INV_E",   "INV_F",
-  "DISP",    "XY",      "R_DOWN",  "UNDO",
-  "E",       "SIN",     "COS",     "TAN",
-  "CHS",     "LOG",     "LB",      "LN",
-  "ROUND",   "POW",     "SQR",     "TO_H",
+  "DISP",    "XY",      "R_DOWN",  "REDO",
+  "RAND",    "ASIN",    "ACOS",    "ATAN",
+  "ABS",     "EXP10",   "EXP2",    "EXP",
+  "RECIP",   "POW",     "SQR",     "TO_H",
   "DPERC",   "FRAC",    "ABS",     "BASE",
 ];
 
@@ -312,6 +311,14 @@ pub static COMMANDS: phf::Map<&str, fn(&mut Calc)> = commands! {
 
   "POW" => fn pow(calc: &mut Calc) input_x base set_last_x {
     calc.down_with_x(calc.y.pow(calc.x));
+  }
+
+  "CHS" => fn chs(calc: &mut Calc) input_x base {
+    calc.x = calc.x.chs();
+  }
+
+  "RECIP" => fn recip(calc: &mut Calc) input_x base {
+    calc.x = calc.x.recip();
   }
 
   "ROOT" => fn root(calc: &mut Calc) input_x base set_last_x {
