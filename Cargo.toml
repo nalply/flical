@@ -1,8 +1,11 @@
 [workspace]
 
 members = [
-  "frontend", "frontend/src-tauri", "pretty", "rpn",
+  "frontend", "frontend/src-tauri", "rpn",
 ]
+
+# keywords = [ "RPN", "calculator", "tauri" ]
+# categories = [ "mathematics", "science", "wasm" ]
 
 resolver = "2"
 

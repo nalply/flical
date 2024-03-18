@@ -1,8 +1,7 @@
 use std::fmt;
 
-use crate::num::Disp::{self, *};
-use crate::num::Num::{self, *};
-use crate::num::ZERO;
+use crate::Disp::{self, *};
+use crate::Num;
 use pretty::pretty;
 use Meta::*;
 
@@ -39,7 +38,7 @@ pub struct Calc {
 impl fmt::Debug for Calc {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let Calc { t, z, y, x, last_x, input, meta, disp, text, scroll, .. } = self;
-    let stack = format!("t {t} z {z} y {y} x {x} last_x {last_x}");
+    let stack = format!("t {t:?} z {z:?} y {y:?} x {x:?} last_x {last_x:?}");
     let text = pretty(text.as_bytes(), 30);
     let text = format!("{meta:?} {disp:?} `{input}` `{text}` scroll {scroll}");
 
@@ -87,22 +86,22 @@ impl Calc {
       }
     };
 
-    let t = format!("t {: <29} {meta}", self.t.display(disp));
+    let t = format!("t {: <29} {meta}", self.t.disp(disp));
     let t = if shows(4) { lines[scroll - 4] } else { &t };
     check_line_len(t);
 
-    let z = format!("z {: <33}", self.z.display(disp));
+    let z = format!("z {: <33}", self.z.disp(disp));
     let z = if shows(3) { lines[scroll - 3] } else { &z };
     check_line_len(z);
 
-    let y = format!("y {: <33}", self.y.display(disp));
+    let y = format!("y {: <33}", self.y.disp(disp));
     let y = if shows(2) { lines[scroll - 2] } else { &y };
     check_line_len(z);
 
     let empty = self.input.is_empty();
     let i = &self.input;
     let i = format!("{i}_");
-    let x = self.x.display(Std);
+    let x = self.x.disp(Std);
     let x = if empty { format!("x {x: <33}") } else { format!("› {i:33}") };
     let x = if shows(1) { lines[scroll - 1] } else { &x };
     check_line_len(x);
@@ -127,7 +126,7 @@ impl Calc {
 
   pub fn add_input(&mut self, input: &str) {
     if self.input.is_empty() {
-      self.up_with_x(Real(0.0))
+      self.up_with_x(Num::ZERO)
     }
     self.input.push_str(input);
   }
@@ -194,34 +193,6 @@ impl Calc {
   pub fn log(&self, msg: &str) {
     (self.js_calls.log)(msg)
   }
-}
-
-pub fn parse(input: &str) -> Num {
-  if input.is_empty() {
-    return Real(0.0);
-  }
-
-  if let Some(i_pos) = input.find('i') {
-    if input == "i" {
-      return Num::c(0.0, 1.0);
-    }
-
-    let (re, im) = input.split_at(i_pos);
-    let re = if re.is_empty() { 0f64 } else { re.parse().unwrap() };
-    let im = &im[1..];
-    let im = if im.is_empty() { 1f64 } else { im.parse().unwrap() };
-
-    return Num::c(re, im);
-  }
-
-  if let Some(slash_pos) = input.find('/') {
-    let (numer, denom) = input.split_at(slash_pos);
-    let numer = numer.parse().unwrap();
-    let denom = denom[1..].parse().unwrap();
-    return Num::q(numer, denom);
-  }
-
-  Num::Real(input.parse().unwrap())
 }
 
 #[rustfmt::skip]
@@ -381,9 +352,9 @@ pub static COMMANDS: phf::Map<&str, fn(&mut Calc)> = commands! {
   }
 
   "DEL" => fn del(calc: &mut Calc) {
-    if calc.input.is_empty() && calc.x != ZERO {
+    if calc.input.is_empty() && calc.x != Num::ZERO {
       calc.last_x = calc.x;
-      calc.x = ZERO;
+      calc.x = Num::ZERO;
     } else {
       let rev_take = calc.input.chars().rev().skip(1).collect::<String>();
       calc.input = rev_take.chars().rev().collect();
@@ -418,7 +389,7 @@ pub static COMMANDS: phf::Map<&str, fn(&mut Calc)> = commands! {
 
   "_INPUT_X" => fn input_x(calc: &mut Calc) {
     if !calc.input.is_empty() {
-      calc.x = parse(&calc.input);
+      calc.x = Num::decode(&calc.input);
       calc.input.clear();
     }
   }
@@ -450,30 +421,30 @@ mod tests {
   fn test_arithmetic_simple() {
     let mut calc = Calc::new(JS_CALLS);
 
-    calc.y = Real(-1.0);
-    calc.x = Real(1.23456789012);
+    calc.y = Num::from_r(-1.0);
+    calc.x = Num::from_r(1.23456789012);
     calc.command("ADD");
 
-    assert_eq!(calc.y, Real(0.0));
-    assert_eq!(calc.x, Real(0.23456789012));
-    assert_eq!(calc.last_x, Real(1.23456789012));
+    assert_eq!(calc.y, Num::from_r(0.0));
+    assert_eq!(calc.x, Num::from_r(0.23456789012));
+    assert_eq!(calc.last_x, Num::from_r(1.23456789012));
 
-    calc.y = Real(2.0);
+    calc.y = Num::from_r(2.0);
     calc.command("SUB");
-    assert_eq!(calc.y, Real(0.0));
-    assert_eq!(calc.x, Real(1.76543210988)); // todo? float cancellation?
-    assert_eq!(calc.last_x, Real(0.23456789012));
+    assert_eq!(calc.y, Num::from_r(0.0));
+    assert_eq!(calc.x, Num::from_r(1.76543210988)); // todo? float cancellation?
+    assert_eq!(calc.last_x, Num::from_r(0.23456789012));
 
-    calc.y = Real(2.0);
+    calc.y = Num::from_r(2.0);
     calc.command("MUL");
-    assert_eq!(calc.y, Real(0.0));
-    assert_eq!(calc.x, Real(3.53086421976));
-    assert_eq!(calc.last_x, Real(1.76543210988));
+    assert_eq!(calc.y, Num::from_r(0.0));
+    assert_eq!(calc.x, Num::from_r(3.53086421976));
+    assert_eq!(calc.last_x, Num::from_r(1.76543210988));
 
-    calc.y = Real(-3.0);
+    calc.y = Num::from_r(-3.0);
     calc.command("DIV");
-    assert_eq!(calc.y, Real(0.0));
-    assert_eq!(calc.x, Real(-0.849650344301));
-    assert_eq!(calc.last_x, Real(3.53086421976));
+    assert_eq!(calc.y, Num::from_r(0.0));
+    assert_eq!(calc.x, Num::from_r(-0.84965034430124));
+    assert_eq!(calc.last_x, Num::from_r(3.53086421976));
   }
 }
