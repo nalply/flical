@@ -1,17 +1,16 @@
-use std::fmt;
+use std::{fmt, mem};
 
-use crate::Disp::{self, *};
 use crate::Num;
+use crate::NumDisplay::{self, *};
 use pretty::pretty;
-use Meta::*;
 
-#[derive(Clone, Debug, Default, PartialEq)]
-pub enum Meta {
-  #[default]
-  Base,
-  Alt,
-  Inv,
-}
+#[derive(Copy, Clone, Debug, Default, PartialEq)] #[rustfmt::skip]
+pub enum DispState { #[default] DispStart, DispFix, DispSci, DispHex }
+use DispState::*;
+
+#[derive(Copy, Clone, Debug, Default, PartialEq)] #[rustfmt::skip]
+pub enum State { #[default] Base, Alt, Inv, Sto, Rcl, Disp(DispState) }
+use State::*;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct JsCalls {
@@ -26,10 +25,9 @@ pub struct Calc {
   pub z: Num,
   pub y: Num,
   pub x: Num,
-  pub last_x: Num,
   pub input: String,
-  pub meta: Meta,
-  pub disp: Disp,
+  pub state: State,
+  pub disp: NumDisplay,
   pub text: String,
   pub scroll: usize,
   pub js_calls: JsCalls,
@@ -37,8 +35,8 @@ pub struct Calc {
 
 impl fmt::Debug for Calc {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let Calc { t, z, y, x, last_x, input, meta, disp, text, scroll, .. } = self;
-    let stack = format!("t {t:?} z {z:?} y {y:?} x {x:?} last_x {last_x:?}");
+    let Calc { t, z, y, x, input, state: meta, disp, text, scroll, .. } = self;
+    let stack = format!("t {t:?} z {z:?} y {y:?} x {x:?}");
     let text = pretty(text.as_bytes(), 30);
     let text = format!("{meta:?} {disp:?} `{input}` `{text}` scroll {scroll}");
 
@@ -54,9 +52,8 @@ impl Calc {
       z: zero,
       y: zero,
       x: zero,
-      last_x: zero,
       input: String::new(),
-      meta: Base,
+      state: Base,
       disp: Std,
       text: "".into(),
       scroll: 0,
@@ -67,10 +64,12 @@ impl Calc {
   pub fn display(&self) -> String {
     self.log(&format!("{self:?}"));
 
-    let meta = match self.meta {
-      Base => "   ",
+    let meta = match self.state {
       Alt => "ALT",
       Inv => "INV",
+      Sto => "STO",
+      Rcl => "RCL",
+      _ => "    ",
     };
 
     let lines = self.text.split('\n').collect::<Vec<_>>();
@@ -86,23 +85,23 @@ impl Calc {
       }
     };
 
-    let t = format!("t {: <29} {meta}", self.t.disp(disp));
+    let t = format!("{: <29} {meta}", self.t.disp(disp));
     let t = if shows(4) { lines[scroll - 4] } else { &t };
     check_line_len(t);
 
-    let z = format!("z {: <33}", self.z.disp(disp));
+    let z = format!("{: <33}", self.z.disp(disp));
     let z = if shows(3) { lines[scroll - 3] } else { &z };
     check_line_len(z);
 
-    let y = format!("y {: <33}", self.y.disp(disp));
+    let y = format!("{: <33}", self.y.disp(disp));
     let y = if shows(2) { lines[scroll - 2] } else { &y };
     check_line_len(z);
 
     let empty = self.input.is_empty();
     let i = &self.input;
     let i = format!("{i}_");
-    let x = self.x.disp(Std);
-    let x = if empty { format!("x {x: <33}") } else { format!("› {i:33}") };
+    let x = self.x.disp(disp);
+    let x = if empty { format!("{x: <33}") } else { format!("› {i:33}") };
     let x = if shows(1) { lines[scroll - 1] } else { &x };
     check_line_len(x);
 
@@ -131,22 +130,87 @@ impl Calc {
     self.input.push_str(input);
   }
 
+  /// DISP spans up a state machine consisting of Dsp* states.
+  /// Handle DISP by switching between these states, for example in DispStart
+  /// A sets display mode to Std, B switches to DspFix state, etc.
+  pub fn handle_disp(&mut self, command: &str) -> bool {
+    let disp_state = if let Disp(disp_state) = self.state {
+      disp_state
+    } else {
+      // Not DISP? Return false to continue command handling in parent function
+      return false;
+    };
+    let command_bytes = command.as_bytes();
+    let digit = command_bytes[0].max(b'0') - b'0';
+
+    #[derive(Clone, Copy, Debug, PartialEq)] #[rustfmt::skip]
+    enum Action { Stay, Current, Error, Set }
+    use Action::*;
+
+    let mut action = Stay;
+    let mut set_display = |display| {
+      self.disp = display;
+      action = Set;
+    };
+
+    match (disp_state, command_bytes) {
+      (DispStart, b"A") => set_display(Std),
+      (DispStart, b"B") => self.state = Disp(DispFix),
+      (DispStart, b"C") => self.state = Disp(DispSci),
+      (DispStart, b"D") => self.state = Disp(DispHex),
+      (DispStart, b"E") => set_display(Raw),
+      (DispFix, [b'0'..=b'9']) => set_display(Fix(digit)),
+      (DispSci, [b'0'..=b'9']) => set_display(Sci(digit)),
+      (DispHex, b"A") => set_display(HexU),
+      (DispHex, b"B") => set_display(HexL),
+      (_, b"F") => action = Current,
+      (_, _) => action = Error,
+    }
+
+    self.log(&format!("state {:?} action {:?}", disp_state, action));
+
+    let disp_state = if let Disp(d) = self.state { d } else { DispStart };
+    let status = match (disp_state, action) {
+      (DispFix | DispSci, Stay) => "Enter digit for precision      Show".into(),
+      (DispHex, Stay) => "Upper Lower                    Show".into(),
+      (_, Set) => format!("Display set to: {:?}", self.disp),
+      (_, Current) => format!("Display is: {:?}", self.disp),
+      (_, Error) => format!("Bad key? Display is: {:?}", self.disp),
+      (_, _) => unreachable!(),
+    };
+    self.status(&status);
+
+    if action != Stay {
+      self.state = Base;
+    }
+
+    true
+  }
+
   /// Handle command, return true to flash
-  pub fn command(&mut self, command: &str) -> bool {
+  pub fn handle_command(&mut self, command: &str) -> bool {
     self.log(&format!("Command `{command}`"));
 
-    // todo no need to scroll or dismiss one-line helps
+    if self.handle_disp(command) {
+      return true;
+    }
 
     // On help scroll down, up or exit help
-    if !self.text.is_empty() {
-      let lines_n = self.text.split('\n').count().max(2) - 2;
+    let lines_n = self.text.split('\n').count();
+    if lines_n > 1 {
       match command {
         "2" | "R_UP" => self.scroll = self.scroll.max(1) - 1,
-        "0" | "R_DOWN" => self.scroll = self.scroll.min(lines_n) + 1,
-        _ => self.text = "".into(),
+        "0" | "R_DOWN" => self.scroll = self.scroll.min(lines_n.max(2) - 2) + 1,
+        _ => self.status(""), // todo Esc key
       }
+    }
+
+    // Exit handling if showing help longer than one line
+    if self.text.split('\n').count() > 1 {
       return false;
     }
+
+    self.status("");
 
     if command.ends_with("_long") {
       self.text = (self.js_calls.lang)("en", command);
@@ -175,12 +239,15 @@ impl Calc {
     self.text = status.into();
   }
 
+  pub fn button_from(buttons: &[&'static str], index: u8) -> &'static str {
+    buttons.get(index as usize).copied().unwrap_or_default()
+  }
+
   pub fn translate_button_press(&self, index: u8, long: bool) -> String {
-    let index = index as usize;
-    let command = match self.meta {
-      Base => BASE_BUTTONS.get(index).copied().unwrap_or_default(),
-      Alt => ALT_BUTTONS.get(index).copied().unwrap_or_default(),
-      Inv => INV_BUTTONS.get(index).copied().unwrap_or_default(),
+    let command = match &self.state {
+      Alt => Self::button_from(ALT_BUTTONS, index),
+      Inv => Self::button_from(INV_BUTTONS, index),
+      _ => Self::button_from(BASE_BUTTONS, index),
     };
 
     format!("{command}{}", if long { "_long" } else { "" })
@@ -208,21 +275,21 @@ pub static BASE_BUTTONS: &[&str] = &[
 #[rustfmt::skip]
 pub static ALT_BUTTONS: &[&str] = &[
   "ALT_A",   "ALT_B",   "ALT_C",   "ALT_D",   "ALT_E",   "ALT_F",
-  "LAST_X",  "XY",      "R_DOWN",  "UNDO",
+  "DISP",    "XY",      "R_DOWN",  "UNDO",
   "EDATA",   "SIN",     "COS",     "TAN",
-  "CHS",     "LOG",     "LB",      "LN",
+  "CHS",     "LN",      "LD",      "LOG",
   "FAC",     "ROOT",    "SQRT",    "TO_HMS",
-  "PERC",    "INT",     "I",       "INV",
+  "RECIP",    "INT",     "I",       "INV",
 ];
 
 #[rustfmt::skip]
 pub static INV_BUTTONS: &[&str] = &[
   "INV_A",   "INV_B",   "INV_C",   "INV_D",   "INV_E",   "INV_F",
-  "DISP",    "XY",      "R_DOWN",  "REDO",
+  "MACRO",   "XZ",      "R_UP",    "REDO",
   "RAND",    "ASIN",    "ACOS",    "ATAN",
-  "ABS",     "EXP10",   "EXP2",    "EXP",
-  "RECIP",   "POW",     "SQR",     "TO_H",
-  "DPERC",   "FRAC",    "ABS",     "BASE",
+  "ABS",     "EXP",     "LB",      "H",
+  "DPERC",   "POW",     "SQR",     "TO_H",
+  "PERC",    "FRAC",    "ABS",     "BASE",
 ];
 
 // I tried to use stringify!() or paste!() to avoid duplication like this:
@@ -255,6 +322,19 @@ macro_rules! commands {
 // The prologue are identifiers name1 name2 ... namen and they get translated
 // to name1(calc); ... namen(calc); invocations bevore the main code.
 pub static COMMANDS: phf::Map<&str, fn(&mut Calc)> = commands! {
+  "E" => fn e(calc: &mut Calc) base {
+    if calc.input.contains('/') {
+      calc.status("Error: No 'e' for fractions");
+      return;
+    }
+    let pos = calc.input.find('i').unwrap_or_default();
+    if calc.input[pos..].contains('e') {
+      calc.status("Error: Duplicate 'e'");
+      return;
+    }
+    calc.add_input("e")
+  }
+
   "ENTER" => fn enter(calc: &mut Calc) base {
     if calc.input.is_empty() {
       calc.up_with_x(calc.x);
@@ -263,53 +343,122 @@ pub static COMMANDS: phf::Map<&str, fn(&mut Calc)> = commands! {
     }
   }
 
-  // todo y complex then result complex
-  "ADD" => fn add(calc: &mut Calc) input_x base set_last_x {
+  "DISP" => fn disp(calc: &mut Calc) {
+    calc.state = Disp(DispStart);
+    calc.status(" Std   Fix   Sci   Hex   Raw   Show");
+  }
+
+  "STO" => fn sto(calc: &mut Calc) {
+    calc.state = Sto;
+  }
+
+  "XY" => fn xy(calc: &mut Calc) input_x base {
+    mem::swap(&mut calc.x, &mut calc.y);
+  }
+
+  "XZ" => fn xz(calc: &mut Calc) input_x base {
+    mem::swap(&mut calc.x, &mut calc.z);
+  }
+
+  "RCL" => fn rcl(calc: &mut Calc) {
+    calc.state = Rcl;
+  }
+
+  "R_UP" => fn rup(calc: &mut Calc) input_x base {
+    mem::swap(&mut calc.t, &mut calc.z);
+    mem::swap(&mut calc.z, &mut calc.y);
+    mem::swap(&mut calc.y, &mut calc.x);
+  }
+
+  "R_DOWN" => fn rdown(calc: &mut Calc) input_x base {
+    mem::swap(&mut calc.y, &mut calc.x);
+    mem::swap(&mut calc.z, &mut calc.y);
+    mem::swap(&mut calc.t, &mut calc.z);
+  }
+
+  "DEL" => fn del(calc: &mut Calc) {
+    if calc.input.is_empty() && calc.x != Num::ZERO {
+      calc.x = Num::ZERO;
+    } else {
+      let rev_take = calc.input.chars().rev().skip(1).collect::<String>();
+      calc.input = rev_take.chars().rev().collect();
+    }
+  }
+
+  "ADD" => fn add(calc: &mut Calc) input_x base {
     calc.down_with_x(calc.y.add_num(calc.x));
   }
 
-  "SUB" => fn sub(calc: &mut Calc) input_x base set_last_x {
+  "SIN" => fn sin(calc: &mut Calc) input_x base {
+    calc.x = calc.x.sin();
+  }
+
+  "ASIN" => fn asin(calc: &mut Calc) input_x base {
+    calc.x = calc.x.asin();
+  }
+
+  "COS" => fn cos(calc: &mut Calc) input_x base {
+    calc.x = calc.x.cos();
+  }
+
+  "ACOS" => fn acos(calc: &mut Calc) input_x base {
+    calc.x = calc.x.acos();
+  }
+
+  "TAN" => fn tan(calc: &mut Calc) input_x base {
+    calc.x = calc.x.tan();
+  }
+
+  "ATAN" => fn atan(calc: &mut Calc) input_x base {
+    calc.x = calc.x.atan();
+  }
+
+  "SUB" => fn sub(calc: &mut Calc) input_x base {
     calc.down_with_x(calc.y.sub_num(calc.x));
-  }
-
-  "MUL" => fn mul(calc: &mut Calc) input_x base set_last_x {
-    calc.down_with_x(calc.x.mul_num(calc.y));
-  }
-
-  "DIV" => fn div(calc: &mut Calc) input_x base set_last_x {
-    calc.down_with_x(calc.y.div_num(calc.x));
-  }
-
-  "POW" => fn pow(calc: &mut Calc) input_x base set_last_x {
-    calc.down_with_x(calc.y.pow(calc.x));
   }
 
   "CHS" => fn chs(calc: &mut Calc) input_x base {
     calc.x = calc.x.chs();
   }
 
+  "ABS" => fn abs(calc: &mut Calc) input_x base {
+    calc.x = calc.x.abs();
+  }
+
+  "LD" => fn ld(calc: &mut Calc) input_x base {
+    calc.x = calc.x.ld();
+  }
+
+  "LOG" => fn log(calc: &mut Calc) input_x base {
+    calc.down_with_x(calc.y.log(calc.x));
+  }
+
+  "MUL" => fn mul(calc: &mut Calc) input_x base {
+    calc.down_with_x(calc.x.mul_num(calc.y));
+  }
+
+  "LB" => fn lb(calc: &mut Calc) input_x base {
+    calc.x = calc.x.lb();
+  }
+
+  "POW" => fn pow(calc: &mut Calc) input_x base {
+    calc.down_with_x(calc.y.pow(calc.x));
+  }
+
   "RECIP" => fn recip(calc: &mut Calc) input_x base {
     calc.x = calc.x.recip();
   }
 
-  "ROOT" => fn root(calc: &mut Calc) input_x base set_last_x {
+  "ROOT" => fn root(calc: &mut Calc) input_x base {
     calc.down_with_x(calc.y.root(calc.x));
   }
 
-  "ROUND" => fn round(calc: &mut Calc) input_x base set_last_x {
-    calc.x = calc.x.round();
+  "DIV" => fn div(calc: &mut Calc) input_x base {
+    calc.down_with_x(calc.y.div_num(calc.x));
   }
 
-  "INT" => fn int(calc: &mut Calc) input_x base set_last_x {
+  "INT" => fn int(calc: &mut Calc) input_x base {
     calc.x = calc.x.int();
-  }
-
-  "FRAC" => fn frac(calc: &mut Calc) input_x base set_last_x {
-    calc.x = calc.x.frac();
-  }
-
-  "ABS" => fn abs(calc: &mut Calc) input_x base set_last_x {
-    calc.x = calc.x.abs();
   }
 
   "DOT" => fn dot(calc: &mut Calc) base {
@@ -336,56 +485,21 @@ pub static COMMANDS: phf::Map<&str, fn(&mut Calc)> = commands! {
     calc.add_input(".")
   }
 
+  "FRAC" => fn frac(calc: &mut Calc) input_x base {
+    calc.x = calc.x.frac();
+  }
+
   "I" => fn i(calc: &mut Calc) base { calc.add_input("i") }
 
-  "E" => fn e(calc: &mut Calc) base {
-    if calc.input.contains('/') {
-      calc.status("Error: No 'e' for fractions");
-      return;
-    }
-    let pos = if let Some(i_pos) = calc.input.find('i') { i_pos } else { 0 };
-    if calc.input[pos..].contains('e') {
-      calc.status("Error: Duplicate 'e'");
-      return;
-    }
-    calc.add_input("e")
+  "ROUND" => fn round(calc: &mut Calc) input_x base {
+    calc.x = calc.x.round();
   }
 
-  "DEL" => fn del(calc: &mut Calc) {
-    if calc.input.is_empty() && calc.x != Num::ZERO {
-      calc.last_x = calc.x;
-      calc.x = Num::ZERO;
-    } else {
-      let rev_take = calc.input.chars().rev().skip(1).collect::<String>();
-      calc.input = rev_take.chars().rev().collect();
-    }
-  }
+  "ALT" => fn alt(calc: &mut Calc) { calc.state = Alt }
 
-  "R_UP" => fn rup(calc: &mut Calc) {
-    let t = calc.t;
-    calc.t = calc.z;
-    calc.z = calc.y;
-    calc.y = calc.x;
-    calc.x = t;
-  }
+  "INV" => fn inv(calc: &mut Calc) { calc.state = Inv }
 
-  "R_DOWN" => fn rdown(calc: &mut Calc) {
-    let x = calc.x;
-    calc.x = calc.y;
-    calc.y = calc.z;
-    calc.z = calc.t;
-    calc.t = x;
-  }
-
-  "SET_LAST_X" => fn set_last_x(calc: &mut Calc) { calc.last_x = calc.x }
-
-  "LAST_X" => fn last_x(calc: &mut Calc) base { calc.up_with_x(calc.last_x) }
-
-  "ALT" => fn alt(calc: &mut Calc) { calc.meta = Alt }
-
-  "INV" => fn inv(calc: &mut Calc) { calc.meta = Inv }
-
-  "BASE" => fn base(calc: &mut Calc) { calc.meta = Base }
+  "BASE" => fn base(calc: &mut Calc) { calc.state = Base }
 
   "_INPUT_X" => fn input_x(calc: &mut Calc) {
     if !calc.input.is_empty() {
@@ -395,8 +509,8 @@ pub static COMMANDS: phf::Map<&str, fn(&mut Calc)> = commands! {
   }
 
   "META" => fn meta(calc: &mut Calc) {
-    calc.meta = match calc.meta {
-      Base => Alt, Alt => Inv, Inv => Base,
+    calc.state = match calc.state {
+      Base => Alt, Alt => Inv, _ => Base,
     }
   }
 };
@@ -423,28 +537,24 @@ mod tests {
 
     calc.y = Num::from_r(-1.0);
     calc.x = Num::from_r(1.23456789012);
-    calc.command("ADD");
+    calc.handle_command("ADD");
 
     assert_eq!(calc.y, Num::from_r(0.0));
     assert_eq!(calc.x, Num::from_r(0.23456789012));
-    assert_eq!(calc.last_x, Num::from_r(1.23456789012));
 
     calc.y = Num::from_r(2.0);
-    calc.command("SUB");
+    calc.handle_command("SUB");
     assert_eq!(calc.y, Num::from_r(0.0));
     assert_eq!(calc.x, Num::from_r(1.76543210988)); // todo? float cancellation?
-    assert_eq!(calc.last_x, Num::from_r(0.23456789012));
 
     calc.y = Num::from_r(2.0);
-    calc.command("MUL");
+    calc.handle_command("MUL");
     assert_eq!(calc.y, Num::from_r(0.0));
     assert_eq!(calc.x, Num::from_r(3.53086421976));
-    assert_eq!(calc.last_x, Num::from_r(1.76543210988));
 
     calc.y = Num::from_r(-3.0);
-    calc.command("DIV");
+    calc.handle_command("DIV");
     assert_eq!(calc.y, Num::from_r(0.0));
     assert_eq!(calc.x, Num::from_r(-0.84965034430124));
-    assert_eq!(calc.last_x, Num::from_r(3.53086421976));
   }
 }

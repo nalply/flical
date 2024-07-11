@@ -1,6 +1,6 @@
-use crate::disp::{disp_c, disp_q, disp_r, disp_z};
+use crate::disp::{disp_c, disp_q, disp_r, disp_z, is_disp_as_z};
 use crate::repr::{repr_c, repr_q, repr_r, repr_z};
-use crate::Disp;
+use crate::NumDisplay;
 use crate::Repr;
 use core::fmt;
 use num_complex::ComplexFloat;
@@ -12,8 +12,8 @@ use std::{
   str::FromStr,
 };
 use types::*;
-use Disp::*;
 use Native::*;
+use NumDisplay::*;
 
 /// The native types underlying the numbers: `Z` is the set of integers, R the
 /// set of reals, Q the set of quotients (also called as ratios, rationals,
@@ -37,6 +37,8 @@ use Native::*;
 ///   should then refuse the calculation with the message: "Undefined number".
 ///
 /// - Infinities (+oo and -oo) are supported. They are not numbers but useful.
+///
+/// - Complex infinities (+ioo and -ioo) are supported. Ditto.
 pub mod types {
   /// Corresponds to the set of integers
   pub type Z = i64;
@@ -87,7 +89,7 @@ impl From<ParseIntError> for NativeError {
 
 impl fmt::Debug for Native {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.write_str(&format!("‹{}›", self.disp(Internal)))
+    f.write_str(&format!("‹{}›", self.disp(Raw)))
   }
 }
 
@@ -100,25 +102,32 @@ impl fmt::Display for Native {
 impl FromStr for Native {
   type Err = NativeError;
 
-  /// Parse a string as a native calculator number type.
+  /// Parse the internal repr to a native type.
   ///
-  /// This relies on the fact that quotients are displayed with a slash like
-  /// this `"2/3"`, and that complex numbers contain the letter `i` in their
-  /// string representation and that integers don't have the decimal point.
+  /// Parsing is lenient and uses some shortcuts: quotients contain a slash
+  /// like `2/3`, complex numbers the letter `I`, reals `E` and integers none
+  /// these.
   fn from_str(s: &str) -> Result<Self, Self::Err> {
-    // todo: parse more things like i = 0 + i or decimal integers
     // todo: write a test
 
     // Positive Infinity
-    if s == "+oo" {
+    if s.starts_with("+o") {
       Real(f64::INFINITY)
     }
     // Negative Infinity
-    else if s == "-oo" {
+    else if s.starts_with("-o") {
       Real(-f64::INFINITY)
     }
+    // Positive Imaginary Infinity
+    else if s.contains("I+o") {
+      Complex(C::new(0.0, f64::INFINITY))
+    }
+    // Negative Imaginary Infinity
+    else if s.contains("I-o") {
+      Complex(C::new(0.0, -f64::INFINITY))
+    }
     // Complex has i
-    else if let Some(pos) = s.find('i') {
+    else if let Some(pos) = s.find('I') {
       let (re_s, im_s) = s.split_at(pos);
       let im_s = &im_s[1..];
       Complex(C::new(re_s.parse()?, im_s.parse()?))
@@ -172,7 +181,7 @@ impl From<C> for Native {
 }
 
 impl Native {
-  pub fn disp(&self, disp: Disp) -> String {
+  pub fn disp(&self, disp: NumDisplay) -> String {
     match *self {
       Integer(z) => disp_z(z, disp),
       Real(r) => disp_r(r, disp),
@@ -318,58 +327,5 @@ impl Native {
   }
 }
 
-pub fn exponent(r: R) -> i16 {
-  const MINUS_INF: R = -R::INFINITY;
-
-  // https://github.com/rust-lang/rust/issues/41620#issuecomment-1726984085
-  #[allow(illegal_floating_point_literal_pattern)]
-  match r.abs().log10() {
-    MINUS_INF => 0,
-    exp => exp.floor() as i16,
-  }
-}
-
-pub fn is_disp_as_z(r: R) -> bool {
-  r.fract() == 0.0 && exponent(r) < 14
-}
-
 #[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn test_log10_as_exponent() {
-    fn assert_exponents(x: f64) {
-      let exponent = exponent(x);
-      let s = format!("{x:e}");
-      let (_, e) = s.split_at(s.find('e').unwrap());
-      let exponent_by_format = e[1..].parse().unwrap();
-
-      assert_eq!(exponent, exponent_by_format, "for {x}");
-    }
-
-    for x in [
-      0.0, 0.1, 0.02, -0.003, 4e10, 5e99, -6e-10, 7e99, 8e100, 9e-200, 1.2e298,
-      3.4e-298, -5.6e299, 7.8e-299, 9.1e300, -2.3e-300,
-    ] {
-      assert_exponents(x);
-    }
-  }
-
-  #[test]
-  #[should_panic]
-  fn test_nan_panic() {
-    let _ = Native::r(f64::NAN);
-  }
-
-  #[test]
-  fn test_weird_zeros() {
-    let subnormal = f64::MIN_POSITIVE / 2.0;
-    assert!(subnormal.is_subnormal(), "subormality sanity check");
-    assert_eq!(Native::r(subnormal).disp(Std), "0");
-
-    let neg_zero = -0.0f64;
-    assert!(neg_zero.is_sign_negative(), "negative zero sanity check");
-    assert_eq!(Native::r(neg_zero).disp(Std), "0");
-  }
-}
+mod tests {}

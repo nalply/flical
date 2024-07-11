@@ -46,7 +46,7 @@ about. Thank you! I plan to publish the results after some time.
   - Mode key (ALT and INV)
 - Stack with four places (x, y, z, t)
 - Sixteen registers
-- Display with four rows of 35 cells
+- Display with four rows of 35 columns
 - Number types
   - double precision IEEE 754 numbers
   - fractions on 64 bit integers

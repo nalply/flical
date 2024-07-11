@@ -31,6 +31,52 @@ impl Num {
     x.powc(1.0 / root).into()
   }
 
+  pub fn sin(self) -> Self {
+    let x: C = self.into();
+    x.sin().into()
+  }
+
+  pub fn asin(self) -> Self {
+    let x: C = self.into();
+    x.asin().into()
+  }
+
+  pub fn cos(self) -> Self {
+    let x: C = self.into();
+    x.cos().into()
+  }
+
+  pub fn acos(self) -> Self {
+    let x: C = self.into();
+    x.acos().into()
+  }
+
+  pub fn tan(self) -> Self {
+    let x: C = self.into();
+    x.tan().into()
+  }
+
+  pub fn atan(self) -> Self {
+    let x: C = self.into();
+    x.atan().into()
+  }
+
+  pub fn ld(self) -> Self {
+    let x: C = self.into();
+    x.log10().into()
+  }
+
+  pub fn lb(self) -> Self {
+    let x: C = self.into();
+    x.log(2.0).into()
+  }
+
+  pub fn log(self, base: Self) -> Self {
+    let x: C = self.into();
+    let base: R = base.into();
+    x.log(base).into()
+  }
+
   pub fn decode(s: &str) -> Self {
     Num::from_str(s).unwrap_or_else(|err| panic!("{}", err.to_string()))
   }
@@ -73,11 +119,8 @@ impl fmt::Debug for Num {
 macro_rules! impl_num_methods {
   (
     $(
-      $method:ident:
-      $z:pat => $z_expr:expr ,
-      $r:pat => $r_expr:expr ,
-      $q:pat => $q_expr:expr ,
-      $c:pat => $c_expr:expr ;
+      $z:ident $r:ident $q:ident $c:ident $method:ident
+      $z_expr:expr, $r_expr:expr, $q_expr:expr, $c_expr:expr;
     )+
   ) => {
     impl Num {
@@ -95,18 +138,21 @@ macro_rules! impl_num_methods {
   }
 }
 
+// The four letters z r q c are match patterns for integers (z), reals (r),
+// quotients (q) and complex (c). After the method name the expressions for
+// each of the four types follow.
 impl_num_methods! {
   // re() -> R { r => r_to_repr(r), q => q2r(q), c => c.re }
   // im() -> R { _ => 0f64, _ => 0f64, c => c.im }
   // inti() -> Z { r => r2z(r), q => r2z(q2r(q)), c => r2z(c.abs()) }
   // numer() -> Z { r => r2z(r), q => *q.numer(), c => r2z(c.abs()) }
   // denom() -> Z { _ => 1i64, q => *q.denom(), _ => 1i64 }
-  chs: z => -z, r => -r, q => -q, c => -c;
-  recip: z => z, r => 1.0 / r, q => q.recip(), c => 1.0 / c;
-  frac: _ => 0, r => r.fract(), q => q.fract(), c => c.abs().fract();
-  int: z => z, r => r.trunc(), q => q.trunc(), c => c.abs().trunc();
-  abs: z => z.abs(), r => r.abs(), q => q.abs(), c => c.abs();
-  round: z => z, r => r.round(), q => q.round(), c => c.abs().round();
+  z r q c chs -z, -r, -q, -c;
+  z r q c recip z, 1.0 / r, q.recip(), 1.0 / c;
+  _z r q c frac 0, r.fract(), q.fract(), c.abs().fract();
+  z r q c int z, r.trunc(),   q.trunc(), c.abs().trunc();
+  z r q c abs z.abs(), r.abs(), q.abs(), c.abs();
+  z r q c round z, r.round(), q.round(), c.abs().round();
 }
 
 macro_rules! impl_binary_ops {
@@ -198,10 +244,10 @@ impl_is! {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::Disp::*;
+  use crate::NumDisplay::*;
 
   fn convert(s: &str, f: impl Fn(Native) -> Native) -> String {
-    f(Num::decode(s).to_native()).disp(Internal)
+    f(Num::decode(s).to_native()).disp(Raw)
   }
 
   #[test]

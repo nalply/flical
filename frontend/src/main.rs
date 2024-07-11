@@ -104,7 +104,7 @@ pub fn flical_translate_key_press(key: JsString) -> JsString {
 pub fn flical_command(command: String) {
   if !command.is_empty() {
     let mut flical = takeFlicalSingleton();
-    if flical.0.command(&command) {
+    if flical.0.handle_command(&command) {
       flashScreen();
     }
     updateScreen(flical.0.display().into());

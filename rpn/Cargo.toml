@@ -11,8 +11,5 @@ pretty = { git = "ssh://nalp@nisaba/git/pretty" }
 phf = { version = "0.11", features = [ "macros" ] }
 paste = "1"
 
-[net]
-git-fetch-with-cli = true
-
 # Copyright see AUTHORS & LICENSE; SPDX-License-Identifier: ISC+
 

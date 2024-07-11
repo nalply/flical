@@ -1,11 +1,16 @@
 document.addEventListener("keydown", handleKey);
 window.addEventListener("load", _ => {
   scaleCalculatorToViewport()
-  measureScreenLetterSpacing()
+
+  let screen =  document.querySelector("#screen")
+  if (!screen) return
+  
+  measureLetterSpacing(screen)
+  replaceUnderscores(screen)
 })
 //window.addEventListener("resize", scaleCalculatorToViewport)
 
-function scaleCalculatorToViewport(initial) {
+function scaleCalculatorToViewport() {
   let main = document.querySelector("main");
   if (!main) return
   
@@ -28,26 +33,26 @@ function scaleCalculatorToViewport(initial) {
 }
 
 scaleCalculatorToViewport.scale = 0
+const columns = 35
 
-function measureScreenLetterSpacing() {
-  let screen =  document.querySelector("#screen")
-  console.log("measureScreenLetterSpacing: screen", screen)
-  
-  if (!screen) return
-
-  // Hardcoded: outer width of #screen
-  let screenWidth = 273
+function measureLetterSpacing(screen) {
+  // Hardcoded: width of #screen
+  let screenWidth = 274
 
   let style = "style=letter-spacing:0;margin:0;padding:0"
-  let text = "x".repeat(35)
+  let text = "x".repeat(columns)
   screen.insertAdjacentHTML("afterbegin", `<span ${style}>${text}</span>`)
   let testSpan = document.querySelector("#screen span")
   let testWidth = testSpan.getBoundingClientRect().width;
-  let letterSpacing = ((screenWidth - testWidth) / 35) + "px"
+  let letterSpacing = ((screenWidth - testWidth) / columns) + "px"
   testSpan.remove()
   console.log(testSpan, "width", testWidth, "letter-spacing", letterSpacing)
 
   screen.style.letterSpacing = letterSpacing
+}
+
+function replaceUnderscores(screen) {
+  screen.innerText = screen.innerText.replaceAll("_", " ")
 }
 
 function handleKey(ev) {
@@ -61,7 +66,7 @@ Array.from(document.querySelectorAll("button")).map(
   (button, index) => {
     let touch = _ => touched(button, index)
     button.addEventListener("mousedown", touch)
-    let lift = _ => lifted(button, index)
+    let lift = ev => lifted(button, index, ev.button == 1)
     button.addEventListener("mouseup", lift)
   }
 )
@@ -91,10 +96,10 @@ function touched(button, index) {
   }
 }
 
-function lifted(button, index) {
+function lifted(button, index, middle) {
 if (running && lastIndex === index) {
     clearTimeout(running)
-    flicalExecute(index, false)
+    flicalExecute(index, middle)
   }
 
   navigator.vibrate?.(0)

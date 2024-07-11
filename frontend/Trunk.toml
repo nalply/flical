@@ -1,7 +1,7 @@
 [build]
 target = "site/index.html"
 no_minification = true
-dist = "../target/dist"
+dist = "site/dist"
 
 [watch]
 watch = [".", "../rpn"]

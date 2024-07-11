@@ -8,17 +8,17 @@ window.flical.keys = {
   "*": "MUL",        "1": "1",         "2": "2",          "3": "3",
   "/": "DIV",        ".": "DOT",       "0": "0",          "A": "ALT",
 
-  "A-x": "LAST_X",   "A-y": "Y_X",     "Up": "R_UP",      "u": "UNDO", 
+  "D": "DISP",       "A-y": "Y_X",     "Up": "R_UP",      "u": "UNDO", 
   "A-+": "EDATA",    "A-s": "SIN",     "A-c": "COS",      "A-t": "TAN",
-  "A--": "CHS",      "A-d": "LOG",     "A-b": "LB",       "A-n": "LN",
+  "A--": "CHS",      "A-n": "LN",      "A-d": "LD",       "A-l": "LOG",
   "!": "!",          "r": "ROOT",      "v": "SQRT",       "A-h": "TO_HMS",
-  "P": "PERC",       "A-i": "INT",     "i": "I",          "I": "INV",
+  "A-/": "RECIP",    "A-i": "INT",     "i": "I",          "I": "INV",
   
-  "D": "DISP",       "A-z": "Z_X",     "Down": "R_DOWN",  "U": "REDO",
+  "M": "MACRO",      "A-z": "Z_X",     "Down": "R_DOWN",
   "A-r": "RAND",     "A-S": "ASIN",    "A-C": "ACOS",     "A-T": "ATAN",
-  "A-/": "RECIP",    "A-D": "EXP10",   "A-B": "EXP2",     "A-N": "EXP",
-  "[": "ROUND",      "^": "POW",       "C-2": "POW2",     "A-H": "TO_H",
-  "A-P": "DPERC",    "A-f": "FRAC",    "A-a": "ABS",      "Esc": "BASE",
+  "A-a": "ABS",      "A-N": "EXP",     "A-b": "LB",       "H": "H",
+  "A-P": "DPERC",    "^": "POW",       "C-2": "POW2",     "A-H": "TO_H",
+  "p": "PERC",       "A-f": "FRAC",    "[": "ROUND",      "Esc": "BASE",
  
   "Tab": "META",
 }

@@ -6,7 +6,7 @@ pub mod repr;
 
 pub use calc::Calc;
 pub use calc::JsCalls;
-pub use disp::Disp;
+pub use disp::NumDisplay;
 pub use native::Native;
 pub use num::Num;
 pub use repr::Repr;

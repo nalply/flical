@@ -50,13 +50,13 @@ img[src="sqrt.svg"] {
 #screen {
 /*  font-size-adjust: none; */
   height: 100px;
-  width: 273px;
-  border: 2px solid #ddc;
+  width: 274px;
+  border: 3px solid #ddc;
   border-radius: 2px;
-  padding: 1px;
   overflow: hidden;
   color: #234;
-  background: #abb;
+  /* there are seams and the color after the comma hides the seams */
+  background: 0 0 / calc(2 * 100% / 35) calc(2 * 100% / 5) url(bg.svg), #abb;
   margin-bottom: 4px;
   font-family: Mono;
   font-size: 16.5px;
@@ -162,6 +162,14 @@ s {
   float: right;
 }
 
+button.alt>p.alt {
+  color: #c76;
+  position: relative;
+  top: -21px;
+  text-align: center;
+  font-size: 18px;
+}
+
 button.alt:not(#x) {
   color: #c76;
   font-size: 20px;
@@ -169,7 +177,9 @@ button.alt:not(#x) {
 
 button.alt>p {
   color: #a8f;
-  line-height: 16px;
+  position: relative;
+  top: 15px;
+  font-size: 18px;
 }
 
 button:active:not(.deactivated) {
