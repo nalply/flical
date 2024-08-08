@@ -12,7 +12,8 @@ omit it and just say, permission is granted, then it's implicit that you grant
 permission *for any purpose*.
 
 - The clause «with or without fee» is tautologic. Either you sell your software
-or you don't. Tertium non datur, this means, there is no other way.
+or you don't. Tertium non datur, this means, there is no other way. Even if one
+does cook up a third thing then it is better not to exclude that, so I don't.
 
 - The shouting case in license is just a form of bullying. I find that crude.
 
@@ -22,12 +23,13 @@ better. «Any» covers all imaginable and unthinkable occurrences when something
 weird happens. This said, I allowed myself to use the intensifier «whatsoever»
 to make it abundantly clear that really all situations shall be covered.
 
-Please note that here's a somewhat dirty secret in law: Imperative law trumps
-licenses. One case is you doing something illegal with your works. Disclaimers
-then become suddenly a lot less helpful. Another case is selling software. You
-will be bound to some imperative laws depending on your jurisdiction.
+Please let me tell you that here's a somewhat dirty secret in law: Imperative
+law trumps licenses. One case is you doing something illegal with your works.
+Disclaimers become suddenly a lot less helpful. Another case is selling
+software. You will be bound to some imperative laws depending on your
+jurisdiction.
 
-What's the point of a long disclaiming listing then?
+What's the point of a long disclaiming listicle then?
 
 That's all, folks.
 
