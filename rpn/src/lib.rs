@@ -3,6 +3,7 @@ pub mod disp;
 pub mod native;
 pub mod num;
 pub mod repr;
+mod pretty;
 
 pub use calc::Calc;
 pub use calc::JsCalls;

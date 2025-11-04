@@ -2,7 +2,7 @@ use std::{fmt, mem};
 
 use crate::Num;
 use crate::NumDisplay::{self, *};
-use pretty::pretty;
+use crate::pretty::pretty;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq)] #[rustfmt::skip]
 pub enum DispState { #[default] DispStart, DispFix, DispSci, DispHex }
